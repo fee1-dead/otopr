@@ -47,6 +47,7 @@ impl FieldConfig {
 
 pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
     let name = input.ident;
+    let generics = input.generics;
 
     let fields = match input.data {
         Data::Struct(ds) => ds.fields,
@@ -104,7 +105,7 @@ pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
 
 
     Ok(quote! {
-        impl ::otopr::traits::EncodableMessage for #name {
+        impl #generics ::otopr::traits::EncodableMessage for #name #generics {
             #methods
         }
     })

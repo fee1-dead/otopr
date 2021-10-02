@@ -96,7 +96,6 @@ pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
             0 #(+ <#field_tys as ::otopr::traits::Encodable>::encoded_size(&self.#field_members, #field_numbers))*
         }
         fn encode<T: ::otopr::__private::BufMut>(&self, s: &mut ::otopr::encoding::ProtobufSerializer<T>) {
-            ::otopr::encoding::ProtobufSerializer::write_varint(s, Self::encoded_size(self));
             #(unsafe { 
                 <#field_tys as ::otopr::traits::Encodable>::encode_field_precomputed(&self.#field_members, s, &#field_tags); 
             })*

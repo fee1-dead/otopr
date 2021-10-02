@@ -6,6 +6,13 @@ pub struct ProtobufSerializer<T> {
 
 impl<T: bytes::BufMut> ProtobufSerializer<T> {
     #[inline]
+    pub fn new(buf: T) -> Self {
+        Self {
+            buf
+        }
+    }
+
+    #[inline]
     pub fn write_varint(&mut self, value: impl VarInt) {
         value.write(&mut self.buf)
     }

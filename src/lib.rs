@@ -29,7 +29,9 @@ mod macros {
 pub mod traits;
 
 pub mod encoding;
-pub mod ser;
+
+#[cfg(test)]
+pub mod tests;
 
 mod impls;
 pub mod wire_types;

@@ -2,7 +2,7 @@ use std::ops::{BitOr, Shl};
 
 use bytes::BufMut;
 
-use crate::{encoding::ProtobufSerializer, wire_types::*};
+use crate::{Message, encoding::ProtobufSerializer, wire_types::*};
 
 pub(crate) mod private {
     pub trait Sealed {}
@@ -55,20 +55,20 @@ pub trait EncodableMessage {
     fn encode<T: BufMut>(&self, s: &mut ProtobufSerializer<T>);
 }
 
-impl<T: EncodableMessage> Encodable for T {
+impl<T: EncodableMessage> Encodable for Message<T> {
     type Wire = LengthDelimitedWire;
 
     fn encoded_size<V: VarInt>(&self, field_number: V) -> usize {
-        let calc_size = EncodableMessage::encoded_size(self);
+        let calc_size = EncodableMessage::encoded_size(&self.0);
 
         // encode field number, the size as varint, plus the bytes that follow.
         field_number.size() + calc_size.size() + calc_size
     }
 
     fn encode(&self, s: &mut ProtobufSerializer<impl BufMut>) {
-        s.write_varint(EncodableMessage::encoded_size(self));
-        EncodableMessage::encode(self, s)
+        s.write_varint(EncodableMessage::encoded_size(&self.0));
+        EncodableMessage::encode(&self.0, s)
     }
 }
 
-arbitrary_seal!(for<T: EncodableMessage> T);
+arbitrary_seal!(for<T> Message<T>);

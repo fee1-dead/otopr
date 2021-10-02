@@ -1,10 +1,6 @@
 use bytes::BufMut;
 
-use crate::{
-    traits::{Encodable, Signable, VarInt},
-    wire_types::*,
-    Fixed32, Fixed64, Repeated,
-};
+use crate::{Fixed32, Fixed64, Repeated, traits::{Encodable, Signable, VarInt, private::ArbitrarySealed}, wire_types::*};
 
 macro_rules! varint {
     (common($intty:ident)) => {
@@ -153,3 +149,19 @@ where
 }
 
 arbitrary_seal!(for<T> Repeated<T>, for str,);
+
+
+impl<'a, T: Encodable + ?Sized> Encodable for &'a T {
+    type Wire = T::Wire;
+
+    fn encoded_size<V: VarInt>(&self, field_number: V) -> usize {
+        T::encoded_size(*self, field_number)
+    }
+
+    fn encode(&self, s: &mut crate::encoding::ProtobufSerializer<impl BufMut>) {
+        T::encode(*self, s)
+    }
+}
+
+impl<'a, T: ArbitrarySealed + ?Sized> ArbitrarySealed for &'a T {}
+impl<'a, T: ArbitrarySealed + ?Sized> ArbitrarySealed for &'a mut T {}

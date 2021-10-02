@@ -53,6 +53,9 @@ pub struct Fixed32(u32);
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
 pub struct Fixed64(u64);
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
+pub struct Message<T>(T);
+
 #[allow(non_camel_case_types)]
 pub mod types {
     use crate::*;

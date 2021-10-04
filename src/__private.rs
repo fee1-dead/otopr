@@ -1,6 +1,7 @@
 use crate::{
+    VarInt,
     encoding::ProtobufSerializer,
-    traits::{Encodable, VarInt},
+    traits::{Encodable},
     wire_types::WireType,
 };
 
@@ -8,7 +9,7 @@ pub use bytes::BufMut;
 
 pub struct __ConstBoundWorkaround<T>(T);
 
-arbitrary_seal!(for<T> __ConstBoundWorkaround<T>);
+arbitrary_seal!(for<T> (__ConstBoundWorkaround<T>));
 
 impl<T: Encodable> Encodable for __ConstBoundWorkaround<T> {
     type Wire = T::Wire;

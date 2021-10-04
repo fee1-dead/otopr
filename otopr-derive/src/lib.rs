@@ -2,6 +2,7 @@ use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput};
 
 mod encode;
+mod common;
 
 #[proc_macro_derive(EncodableMessage, attributes(otopr))]
 pub fn derive_encodable_message(ts: TokenStream) -> TokenStream {

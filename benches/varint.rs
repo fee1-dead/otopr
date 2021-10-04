@@ -2,7 +2,7 @@ use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
     Throughput,
 };
-use otopr::traits::VarInt;
+use otopr::VarInt;
 use prost::encoding::encoded_len_varint;
 use rand::{prelude::StdRng, seq::SliceRandom, SeedableRng};
 

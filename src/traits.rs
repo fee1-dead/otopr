@@ -1,8 +1,7 @@
-use std::ops::{BitOr, Shl};
 
 use bytes::BufMut;
 
-use crate::{Message, encoding::ProtobufSerializer, wire_types::*};
+use crate::{Message, VarInt, encoding::ProtobufSerializer, wire_types::*};
 
 pub(crate) mod private {
     pub trait Sealed {}
@@ -16,13 +15,7 @@ pub trait Signable: private::Sealed {
     fn zigzag_encode(f: Self::From) -> Self::Storage;
 }
 
-/// A VarInt type.
-pub trait VarInt:
-    private::Sealed + Copy + Shl<usize, Output = Self> + From<u8> + BitOr<Output = Self>
-{
-    fn write(self, buf: &mut impl bytes::BufMut);
-    fn size(self) -> usize;
-}
+
 
 pub trait Encodable: private::ArbitrarySealed {
     type Wire: WireType;
@@ -71,4 +64,4 @@ impl<T: EncodableMessage> Encodable for Message<T> {
     }
 }
 
-arbitrary_seal!(for<T> Message<T>);
+arbitrary_seal!(for<T> (Message<T>));

@@ -155,7 +155,7 @@ impl Field {
         let res = it
             .into_iter()
             .map(|t| Self::field_tag_non_varint_size(t.cfg.field_number, t.cfg.field_number_span))
-            .try_fold(0, |n, r| r.map(|i| n.max(i)))?;
+            .try_fold(1, |n, r| r.map(|i| n.max(i)))?;
         // 
         Ok(match res {
             1 => quote! { u8 },

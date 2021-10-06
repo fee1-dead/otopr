@@ -33,6 +33,10 @@ pub trait Encodable: private::ArbitrarySealed {
         self.encode(s);
     }
 
+    /// Encodes a field using precomputed bytes for the field number and the wire type varint.
+    /// 
+    /// # Safety
+    /// You must ensure that the bytes are valid varint. That is, all bytes except the last has the MSB set.
     unsafe fn encode_field_precomputed(
         &self,
         s: &mut ProtobufSerializer<impl BufMut>,

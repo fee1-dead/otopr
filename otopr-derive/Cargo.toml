@@ -1,7 +1,11 @@
 [package]
 name = "otopr-derive"
+description = "Obvious Rust Protobuf Library - Derive Macros"
 version = "0.1.0"
-edition = "2021"
+edition = "2018"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/fee1-dead/otopr"
+repository = "https://github.com/fee1-dead/otopr"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

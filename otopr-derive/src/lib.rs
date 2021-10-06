@@ -1,3 +1,9 @@
+#![deny(warnings)]
+#![deny(unused_lifetimes)]
+
+// No unsafe code should ever be used in derive macros.
+#![forbid(unsafe_code)]
+
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput};
 

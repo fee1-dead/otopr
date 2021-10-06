@@ -24,6 +24,9 @@ impl<T: Encodable> Encodable for __ConstBoundWorkaround<T> {
 }
 
 /// Assumes N is the number of bytes it will take to encode a field key, returns encoded bytes in LEB128 format.
+///
+/// # Safety
+/// You must ensure that `N` is the number of bytes that will be encoded.
 pub const unsafe fn precompute_field_varint<F, const N: usize>(mut num: u64) -> [u8; N]
 where
     __ConstBoundWorkaround<F>: Encodable,
@@ -32,7 +35,7 @@ where
     // lowest four bits.
     let lowest_byte =
         (num << 3 & 0b0111_1000) as u8 | <__ConstBoundWorkaround<F> as Encodable>::Wire::BITS;
-    num = num >> 4;
+    num >>= 4;
     bytes[N - 1] = lowest_byte;
     let mut n = N - 1;
 
@@ -54,7 +57,7 @@ where
         bytes[n] = (num & 0b0111_1111) as u8 | 0b1000_0000;
 
         // discard the last 7 bits of num.
-        num = num >> 7;
+        num >>= 7;
 
         if n == 0 {
             return bytes;

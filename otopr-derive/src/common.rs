@@ -1,7 +1,8 @@
 use std::time::SystemTime;
+use std::iter::FromIterator;
 
 use proc_macro2::{Ident, Span, TokenStream as Ts2};
-use syn::{Attribute, Data, DeriveInput, Error, LitInt, Member, Token, Type, parenthesized, parse::{ParseStream, Parser}, parse2, spanned::Spanned};
+use syn::{Attribute, Data, Error, LitInt, Member, Token, Type, parenthesized, parse::{ParseStream, Parser}, parse2, spanned::Spanned};
 
 use quote::quote;
 
@@ -187,8 +188,9 @@ impl FieldConfig {
         for attr in attrs.into_iter().filter(|a| a.path.is_ident("otopr")) {
             let (_parens, tts) = Parser::parse2(|p: ParseStream| {
                 let content;
+                let parens = parenthesized!(content in p);
                 Ok((
-                    parenthesized!(content in p),
+                    parens,
                     content.parse_terminated::<Ts2, Token![,]>(|p| p.parse())?,
                 ))
             }, attr.tokens)?;

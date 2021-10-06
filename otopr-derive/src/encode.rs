@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream as Ts2;
 
-use quote::{ToTokens, quote};
-use syn::{DeriveInput, GenericParam};
+use quote::quote;
+use syn::DeriveInput;
 
 use crate::common::*;
 

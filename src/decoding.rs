@@ -10,7 +10,8 @@ pub trait Decodable<'de>: Sized + ArbitrarySealed {
     fn decode<B: Buf>(deserializer: &mut Deserializer<'de, B>) -> Result<Self>;
 
     fn merge_from<B: Buf>(&mut self, deserializer: &mut Deserializer<'de, B>) -> Result<()> {
-        Ok(self.merge(Self::decode(deserializer)?))
+        self.merge(Self::decode(deserializer)?);
+        Ok(())
     }
 
     /// If this is a `message`, call `merge()` on all fields,

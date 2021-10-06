@@ -15,8 +15,6 @@ pub trait Signable: private::Sealed {
     fn zigzag_encode(f: Self::From) -> Self::Storage;
 }
 
-
-
 pub trait Encodable: private::ArbitrarySealed {
     type Wire: WireType;
 

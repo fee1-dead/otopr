@@ -1,6 +1,6 @@
 use bytes::BufMut;
 
-use crate::{Fixed32, Fixed64, VarInt, traits::{Encodable, Signable, private::ArbitrarySealed}, wire_types::*};
+use crate::{Fixed32, Fixed64, VarInt, decoding::{Decodable, DecodingError}, traits::{Encodable, Signable, private::ArbitrarySealed}, wire_types::*};
 
 
 
@@ -53,7 +53,31 @@ impl Encodable for str {
     }
 }
 
-arbitrary_seal!((str));
+impl Encodable for bool {
+    type Wire = VarIntWire;
+
+    fn encoded_size<V: VarInt>(&self, field_number: V) -> usize {
+        field_number.size() + 1
+    }
+
+    fn encode(&self, s: &mut crate::encoding::ProtobufSerializer<impl BufMut>) {
+        s.write_u8(*self as u8);
+    }
+}
+
+impl Decodable<'_> for bool {
+    type Wire = VarIntWire;
+
+    fn decode<B: bytes::Buf>(deserializer: &mut crate::decoding::Deserializer<'_, B>) -> crate::decoding::Result<Self> {
+        match deserializer.get_u8() {
+            0b0000_0001 => Ok(true),
+            0b0000_0000 => Ok(false),
+            _ => Err(DecodingError::VarIntOverflow)
+        }
+    }
+}
+
+arbitrary_seal!((str), (bool));
 
 impl<'a, T: ArbitrarySealed + ?Sized> ArbitrarySealed for &'a T {}
 impl<'a, T: ArbitrarySealed + ?Sized> ArbitrarySealed for &'a mut T {}

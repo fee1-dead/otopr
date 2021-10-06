@@ -30,6 +30,11 @@ impl<T: bytes::BufMut> ProtobufSerializer<T> {
     }
 
     #[inline]
+    pub fn write_u8(&mut self, n: u8) {
+        self.buf.put_u8(n);
+    }
+
+    #[inline]
     pub fn write_u32(&mut self, n: u32) {
         self.buf.put_u32_le(n)
     }

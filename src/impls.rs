@@ -36,6 +36,7 @@ crate::seal! {
     for i64,
     for i32,
     for u16,
+    for u8,
     for usize,
     for Fixed32,
     for Fixed64,

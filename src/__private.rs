@@ -5,7 +5,7 @@ use crate::{
     wire_types::WireType,
 };
 
-pub use bytes::BufMut;
+pub use bytes::{Buf, BufMut};
 
 pub struct __ConstBoundWorkaround<T>(T);
 

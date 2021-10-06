@@ -1,31 +1,16 @@
-use proc_macro2::{Span, TokenStream as Ts2};
+use proc_macro2::TokenStream as Ts2;
 
-use quote::quote;
-use syn::{Data, DeriveInput, Error, Member, spanned::Spanned};
+use quote::{ToTokens, quote};
+use syn::{DeriveInput, GenericParam};
 
 use crate::common::*;
 
-
 pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
     let name = input.ident;
-    let generics = input.generics;
+    let mut generics = input.generics;
+    generics.type_params_mut().for_each(|f| f.bounds.clear());
 
-    let fields = match input.data {
-        Data::Struct(ds) => ds.fields,
-        Data::Enum(_) => {
-            return Err(Error::new(
-                Span::call_site(),
-                "enumerations are not yet supported",
-            ))
-        }
-        Data::Union(_) => return Err(Error::new(Span::call_site(), "unions are not supported")),
-    };
-
-    let fields: Vec<Field> = fields
-        .into_iter()
-        .enumerate()
-        .map(|(n, field)| Field::new(n, field))
-        .collect::<SynResult<_>>().inner()?;
+    let fields = fields_from(input.data)?;
 
     let field_encoded_sizes = fields.iter().map(Field::encoded_size);
     let field_encodes: Vec<_> = fields.iter().map(Field::encode).collect::<SynResult<_>>().inner()?;

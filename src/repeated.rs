@@ -70,7 +70,7 @@ where
 {
     type Wire = T::Wire;
 
-    fn decode<B: bytes::Buf>(deserializer: &'de mut crate::decoding::Deserializer<B>) -> crate::decoding::Result<Self> {
+    fn decode<B: bytes::Buf>(deserializer: &mut crate::decoding::Deserializer<'de, B>) -> crate::decoding::Result<Self> {
         let mut val = Self::default();
         val.0.extend([T::decode(deserializer)?]);
         Ok(val)
@@ -80,7 +80,7 @@ where
         self.0.extend(other.0)
     }
 
-    fn merge_from<B: bytes::Buf>(&mut self, deserializer: &'de mut crate::decoding::Deserializer<B>) -> crate::decoding::Result<()> {
+    fn merge_from<B: bytes::Buf>(&mut self, deserializer: &mut crate::decoding::Deserializer<'de, B>) -> crate::decoding::Result<()> {
         self.0.extend([T::decode(deserializer)?]);
         Ok(())
     }

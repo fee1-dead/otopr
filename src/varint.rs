@@ -11,8 +11,8 @@ pub trait VarInt:
     private::Sealed + Copy + Shl<usize, Output = Self> + From<u8> + BitOr<Output = Self> + 'static
 {
     fn write(self, buf: &mut impl bytes::BufMut);
-    fn read(buf: &mut impl bytes::Buf) -> crate::decoding::Result<Self>;
-    fn read_field_tag(buf: &mut impl bytes::Buf) -> Result<Self, crate::decoding::Result<WireTypes>>;
+    fn read<B: Buf>(buf: &mut Deserializer<B>) -> crate::decoding::Result<Self>;
+    fn read_field_tag<B: Buf>(buf: &mut Deserializer<B>) -> Result<Self, crate::decoding::Result<WireTypes>>;
     fn size(self) -> usize;
 }
 
@@ -61,7 +61,7 @@ macro_rules! varint {
                     buf.put_u8(self as u8);
                 }
 
-                fn read_field_tag(buf: &mut impl bytes::Buf) -> Result<Self, Result<WireTypes>> {
+                fn read_field_tag<B: Buf>(buf: &mut Deserializer<B>) -> Result<Self, Result<WireTypes>> {
                     if !buf.has_remaining() {
                         return Err(eof());
                     }
@@ -109,7 +109,7 @@ macro_rules! varint {
                     Ok(storage)
                 }
 
-                fn read(buf: &mut impl bytes::Buf) -> Result<$intty> {
+                fn read<B: Buf>(buf: &mut Deserializer<B>) -> Result<$intty> {
                     if !buf.has_remaining() {
                         return eof();
                     }
@@ -175,10 +175,10 @@ macro_rules! varint_forward {
                 VarInt::write(self as $otherty, buf)
             }
             #[inline]
-            fn read(buf: &mut impl bytes::Buf) -> Result<$selfty> {
+            fn read<B: Buf>(buf: &mut Deserializer<B>) -> Result<$selfty> {
                 <$otherty as VarInt>::read(buf).map(|n| n as $selfty)
             }
-            fn read_field_tag(buf: &mut impl bytes::Buf) -> Result<$selfty, Result<WireTypes>> {
+            fn read_field_tag<B: Buf>(buf: &mut Deserializer<B>) -> Result<$selfty, Result<WireTypes>> {
                 <$otherty as VarInt>::read_field_tag(buf).map(|n| n as $selfty)
             }
             #[inline]
@@ -190,5 +190,5 @@ macro_rules! varint_forward {
     )*};
 }
 
-varint!(u64, u32, u16, usize);
+varint!(u64, u32, u16, u8, usize);
 varint_forward!(i32 as u32, i64 as u64);

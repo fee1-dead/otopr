@@ -4,7 +4,7 @@
 
 pub(crate) extern crate self as otopr;
 
-pub use otopr_derive::EncodableMessage;
+pub use otopr_derive::*;
 
 #[macro_use]
 mod macros {
@@ -75,6 +75,12 @@ pub struct Fixed64(u64);
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
 #[repr(transparent)]
 pub struct Message<T>(T);
+
+impl<T> Message<T> {
+    pub fn into_inner(self) -> T {
+        self.0
+    }
+}
 
 #[allow(non_camel_case_types)]
 pub mod types {

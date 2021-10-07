@@ -33,7 +33,7 @@ pub struct Field {
 }
 
 pub fn random_ident_str() -> String {
-    format!("_OTOPR_DERIVE_INTERNAL_{}", SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs())
+    format!("_OTOPR_DERIVE_INTERNAL_{}", SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_nanos())
 }
 
 impl Field {

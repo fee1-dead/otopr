@@ -29,3 +29,24 @@ fn test2() {
 
     assert_eq!(&[0x12, 0x07, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67], buf.as_slice());
 }
+
+#[test]
+fn test_varint() -> otopr::decoding::Result<()> {
+    use otopr::VarInt;
+
+
+    let num = u64::read(&mut Deserializer::new(&mut [
+        0b1_1111111,
+        0b1_1111111,
+        0b1_1111111,
+        0b1_1111111,
+        0b1_1111111,
+        0b1_1111111,
+        0b1_1111111,
+        0b1_1111111,
+        0b1_1111111,
+        0b0_0000001,
+    ].as_ref()))?;
+    assert_eq!(num, u64::MAX);
+    Ok(())
+}

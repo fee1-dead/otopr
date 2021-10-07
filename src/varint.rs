@@ -88,6 +88,12 @@ macro_rules! varint {
                             overflow!()
                         }
 
+                        if !buf.has_remaining() {
+                            return Err(eof());
+                        }
+
+                        byte = buf.get_u8();
+
                         let bits_left = <$intty>::BITS - shift;
                         if bits_left < 8 {
                             // more bits than we can fit
@@ -96,12 +102,6 @@ macro_rules! varint {
                                 overflow!()
                             }
                         }
-
-                        if !buf.has_remaining() {
-                            return Err(eof());
-                        }
-
-                        byte = buf.get_u8();
                     }
 
                     storage |= (byte as $intty) << shift;
@@ -127,6 +127,11 @@ macro_rules! varint {
                             return overflow()
                         }
 
+                        if !buf.has_remaining() {
+                            return eof();
+                        }
+
+                        byte = buf.get_u8();
                         let bits_left = <$intty>::BITS - shift;
                         if bits_left < 8 {
                             // more bits than we can fit
@@ -135,12 +140,6 @@ macro_rules! varint {
                                 return overflow();
                             }
                         }
-
-                        if !buf.has_remaining() {
-                            return eof();
-                        }
-
-                        byte = buf.get_u8();
                     }
 
                     storage |= (byte as $intty) << shift;

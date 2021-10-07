@@ -39,6 +39,8 @@ pub use repeated::Repeated;
 mod varint;
 pub use varint::VarInt;
 
+mod map;
+
 #[cfg(test)]
 pub mod tests;
 

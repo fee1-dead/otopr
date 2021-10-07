@@ -65,6 +65,7 @@ impl From<Utf8Error> for DecodingError {
 
 pub type Result<T, E = DecodingError> = std::result::Result<T, E>;
 
+#[must_use]
 pub struct LimitToken {
     prev_limit: usize,
     set_to: usize,

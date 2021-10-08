@@ -1,6 +1,7 @@
 use std::ops::{BitOr, Shl};
 
 use crate::decoding::*;
+use crate::encoding::*;
 use crate::traits::*;
 use crate::wire_types::*;
 
@@ -12,7 +13,9 @@ pub trait VarInt:
 {
     fn write(self, buf: &mut impl bytes::BufMut);
     fn read<B: Buf>(buf: &mut Deserializer<B>) -> crate::decoding::Result<Self>;
-    fn read_field_tag<B: Buf>(buf: &mut Deserializer<B>) -> Result<Self, crate::decoding::Result<WireTypes>>;
+    fn read_field_tag<B: Buf>(
+        buf: &mut Deserializer<B>,
+    ) -> Result<Self, crate::decoding::Result<WireTypes>>;
     fn size(self) -> usize;
 }
 
@@ -30,7 +33,6 @@ fn overflow<T>() -> Result<T> {
 
 macro_rules! varint {
     (common($intty:ident)) => {
-        arbitrary_seal!(($intty));
         impl Encodable for $intty {
             type Wire = VarIntWire;
 

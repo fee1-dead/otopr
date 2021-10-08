@@ -1,6 +1,41 @@
 use bytes::BufMut;
 
-use crate::{Fixed32, Fixed64, Signed, VarInt, traits::{Encodable, Signable}, wire_types::*};
+use crate::{traits::Signable, wire_types::*, Fixed32, Fixed64, Signed, VarInt};
+
+pub trait Encodable {
+    type Wire: WireType;
+
+    /// returns the size in bytes when encoded, including the field number.
+    fn encoded_size<V: VarInt>(&self, field_number: V) -> usize;
+    fn encode(&self, s: &mut ProtobufSerializer<impl BufMut>);
+
+    /// The entry point to encoding `Encodable`s in a message.
+    ///
+    /// the default implementation writes field_number << 3 | wire_type as an varint and calls [`encode()`].
+    fn encode_field<V: VarInt>(&self, s: &mut ProtobufSerializer<impl BufMut>, field_number: V) {
+        let var = field_number << 3 | V::from(Self::Wire::BITS);
+        s.write_varint(var);
+        self.encode(s);
+    }
+
+    /// Encodes a field using precomputed bytes for the field number and the wire type varint.
+    ///
+    /// # Safety
+    /// You must ensure that the bytes are valid varint. That is, all bytes except the last has the MSB set.
+    unsafe fn encode_field_precomputed(
+        &self,
+        s: &mut ProtobufSerializer<impl BufMut>,
+        field_number: &[u8],
+    ) {
+        s.buf.put_slice(field_number);
+        self.encode(s);
+    }
+}
+
+pub trait EncodableMessage {
+    fn encoded_size(&self) -> usize;
+    fn encode<T: BufMut>(&self, s: &mut ProtobufSerializer<T>);
+}
 
 pub struct ProtobufSerializer<T> {
     pub(crate) buf: T,
@@ -9,9 +44,7 @@ pub struct ProtobufSerializer<T> {
 impl<T: bytes::BufMut> ProtobufSerializer<T> {
     #[inline]
     pub fn new(buf: T) -> Self {
-        Self {
-            buf
-        }
+        Self { buf }
     }
 
     #[inline]
@@ -54,8 +87,6 @@ impl<T: bytes::BufMut> ProtobufSerializer<T> {
         field.encode_field(self, field_number);
     }
 }
-
-arbitrary_seal!((Fixed32), (Fixed64), for<T: Signable> (Signed<T>), ([u8]));
 
 impl Encodable for Fixed32 {
     type Wire = Fixed32Wire;

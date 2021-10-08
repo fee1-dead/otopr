@@ -2,9 +2,9 @@ use std::{borrow::Cow, str::Utf8Error};
 
 use bytes::Buf;
 
-use crate::{Message, VarInt, traits::private::ArbitrarySealed, wire_types::*};
+use crate::{wire_types::*, Message, VarInt};
 
-pub trait Decodable<'de>: Sized + ArbitrarySealed {
+pub trait Decodable<'de>: Sized {
     type Wire: WireType;
 
     fn decode<B: Buf>(deserializer: &mut Deserializer<'de, B>) -> Result<Self>;
@@ -29,11 +29,18 @@ pub trait DecodableMessage<'de>: Sized {
     /// since there can be removed fields exceeding the current storage type.
     type Tag: VarInt;
 
-    /// Decodes a field with the given tag. 
+    /// Decodes a field with the given tag.
     ///
-    /// Skips the field if there are no matches for the tag. 
-    fn decode_field<B: Buf>(&mut self, deserializer: &mut Deserializer<'de, B>, tag: Self::Tag) -> Result<()>;
-    fn decode<B: Buf>(deserializer: &mut Deserializer<'de, B>) -> Result<Self> where Self: Default {
+    /// Skips the field if there are no matches for the tag.
+    fn decode_field<B: Buf>(
+        &mut self,
+        deserializer: &mut Deserializer<'de, B>,
+        tag: Self::Tag,
+    ) -> Result<()>;
+    fn decode<B: Buf>(deserializer: &mut Deserializer<'de, B>) -> Result<Self>
+    where
+        Self: Default,
+    {
         let mut message = Self::default();
         loop {
             if !deserializer.has_remaining() {
@@ -79,7 +86,7 @@ impl Drop for LimitToken {
 
 pub struct Deserializer<'de, B> {
     pub(crate) buf: &'de mut B,
-    limit: usize
+    limit: usize,
 }
 
 impl<'de, B: Buf> Deserializer<'de, B> {
@@ -95,10 +102,7 @@ impl<'de, B: Buf> Deserializer<'de, B> {
         let set_to = limit.min(self.limit);
         self.limit = set_to;
 
-        LimitToken {
-            prev_limit,
-            set_to,
-        }
+        LimitToken { prev_limit, set_to }
     }
 
     pub fn reset_limit(&mut self, token: LimitToken) {
@@ -111,7 +115,9 @@ impl<'de, B: Buf> Deserializer<'de, B> {
 
     /// get an u8 from the underlying buffer, assuming this is within limits.
     pub fn get_u8(&mut self) -> u8 {
-        if self.limit != usize::MAX { self.limit -= 1 }
+        if self.limit != usize::MAX {
+            self.limit -= 1
+        }
         self.buf.get_u8()
     }
 
@@ -119,7 +125,11 @@ impl<'de, B: Buf> Deserializer<'de, B> {
         self.buf.remaining() != 0 && self.limit != 0
     }
 
-    pub fn check_limit<'a, F: FnOnce(&'a mut B) -> Result<V>, V>(&'a mut self, len: usize, f: F) -> Result<V> {
+    pub fn check_limit<'a, F: FnOnce(&'a mut B) -> Result<V>, V>(
+        &'a mut self,
+        len: usize,
+        f: F,
+    ) -> Result<V> {
         if self.limit == usize::MAX {
             f(&mut self.buf)
         } else if self.limit < len {
@@ -218,8 +228,6 @@ impl Decodable<'_> for String {
         Ok(String::from_utf8(bytes).map_err(|e| e.utf8_error())?)
     }
 }
-
-arbitrary_seal!((String), (Vec<u8>));
 
 impl<'de, M: DecodableMessage<'de> + Default> Decodable<'de> for Message<M> {
     type Wire = LengthDelimitedWire;

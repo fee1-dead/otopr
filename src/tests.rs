@@ -1,4 +1,7 @@
-use crate::{decoding::{DecodableMessage, Deserializer}, encoding::ProtobufSerializer, traits::EncodableMessage};
+use crate::{
+    decoding::{DecodableMessage, Deserializer},
+    encoding::{EncodableMessage, ProtobufSerializer},
+};
 
 #[test]
 fn test1() -> crate::decoding::Result<()> {
@@ -27,26 +30,31 @@ fn test2() {
     let mut buf = Vec::with_capacity(9);
     Test2("testing").encode(&mut ProtobufSerializer::new(&mut buf));
 
-    assert_eq!(&[0x12, 0x07, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67], buf.as_slice());
+    assert_eq!(
+        &[0x12, 0x07, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67],
+        buf.as_slice()
+    );
 }
 
 #[test]
 fn test_varint() -> otopr::decoding::Result<()> {
     use otopr::VarInt;
 
-
-    let num = u64::read(&mut Deserializer::new(&mut [
-        0b1_1111111,
-        0b1_1111111,
-        0b1_1111111,
-        0b1_1111111,
-        0b1_1111111,
-        0b1_1111111,
-        0b1_1111111,
-        0b1_1111111,
-        0b1_1111111,
-        0b0_0000001,
-    ].as_ref()))?;
+    let num = u64::read(&mut Deserializer::new(
+        &mut [
+            0b1_1111111,
+            0b1_1111111,
+            0b1_1111111,
+            0b1_1111111,
+            0b1_1111111,
+            0b1_1111111,
+            0b1_1111111,
+            0b1_1111111,
+            0b1_1111111,
+            0b0_0000001,
+        ]
+        .as_ref(),
+    ))?;
     assert_eq!(num, u64::MAX);
     Ok(())
 }

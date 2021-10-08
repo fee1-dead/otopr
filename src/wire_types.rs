@@ -1,6 +1,9 @@
 use bytes::Buf;
 
-use crate::{decoding::{DecodingError, Deserializer, Result}, traits::private::Sealed};
+use crate::{
+    decoding::{DecodingError, Deserializer, Result},
+    traits::private::Sealed,
+};
 
 /// A WireType.
 pub trait WireType: Sealed {
@@ -45,9 +48,7 @@ wires! {
 impl WireTypes {
     pub fn skip<B: Buf>(self, d: &mut Deserializer<B>) -> Result<()> {
         match self {
-            WireTypes::VarIntWire => {
-                while d.buf.get_u8() > 0b0111_1111 {}
-            }
+            WireTypes::VarIntWire => while d.buf.get_u8() > 0b0111_1111 {},
             WireTypes::Fixed64Wire => d.buf.advance(8),
             WireTypes::LengthDelimitedWire => {
                 let len = d.read_varint()?;

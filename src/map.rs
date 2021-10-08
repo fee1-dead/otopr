@@ -3,11 +3,10 @@ use std::{collections::HashMap, marker::PhantomData};
 use bytes::Buf;
 
 use crate::decoding::{Decodable, DecodingError, Deserializer};
-use crate::traits::Encodable;
-use crate::{VarInt, wire_types::*};
+use crate::encoding::Encodable;
+use crate::{wire_types::*, VarInt};
 
 pub struct Map<K, V, T = HashMap<K, V>>(T, PhantomData<(K, V)>);
-arbitrary_seal!(for<K, V, T> (Map<K, V, T>));
 
 impl<K, V, T> Encodable for Map<K, V, T>
 where
@@ -20,14 +19,18 @@ where
     fn encoded_size<I: crate::VarInt>(&self, field_number: I) -> usize {
         (&self.0)
             .into_iter()
-            .map(|(key, value)| { 
+            .map(|(key, value)| {
                 let pair_message_size = key.encoded_size(1) + value.encoded_size(2);
                 field_number.size() + pair_message_size.size() + pair_message_size
             })
             .sum::<usize>()
     }
 
-    fn encode_field<I: VarInt>(&self, s: &mut crate::encoding::ProtobufSerializer<impl bytes::BufMut>, field_number: I) {
+    fn encode_field<I: VarInt>(
+        &self,
+        s: &mut crate::encoding::ProtobufSerializer<impl bytes::BufMut>,
+        field_number: I,
+    ) {
         let var = field_number << 3 | I::from(Self::Wire::BITS);
         for (key, value) in &self.0 {
             s.write_varint(var);
@@ -39,7 +42,11 @@ where
         }
     }
 
-    unsafe fn encode_field_precomputed(&self, s: &mut crate::encoding::ProtobufSerializer<impl bytes::BufMut>, field_number: &[u8]) {
+    unsafe fn encode_field_precomputed(
+        &self,
+        s: &mut crate::encoding::ProtobufSerializer<impl bytes::BufMut>,
+        field_number: &[u8],
+    ) {
         for (key, value) in &self.0 {
             s.write_bytes(field_number);
             s.write_varint(key.encoded_size(1) + value.encoded_size(2));
@@ -47,12 +54,11 @@ where
             value.encode_field_precomputed(s, &[0b00010_000 | V::Wire::BITS]);
         }
     }
-    
 
     fn encode(&self, _s: &mut crate::encoding::ProtobufSerializer<impl bytes::BufMut>) {
         unreachable!("encode called for Map")
     }
-} 
+}
 
 impl<'de, K, V, T> Decodable<'de> for Map<K, V, T>
 where
@@ -93,7 +99,7 @@ where
         d.reset_limit(lmt);
 
         if let Some(e) = error {
-            return Err(e)
+            return Err(e);
         }
 
         let key = match key {
@@ -115,7 +121,10 @@ where
         self.0.extend(other.0)
     }
 
-    fn decode<B>(d: &mut Deserializer<'de, B>) -> std::result::Result<Self, DecodingError> where B: Buf {
+    fn decode<B>(d: &mut Deserializer<'de, B>) -> std::result::Result<Self, DecodingError>
+    where
+        B: Buf,
+    {
         let mut this = Self(T::default(), PhantomData);
         this.merge_from(d)?;
         Ok(this)

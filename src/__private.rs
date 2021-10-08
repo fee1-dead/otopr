@@ -1,15 +1,12 @@
-use crate::{
-    VarInt,
-    encoding::ProtobufSerializer,
-    traits::{Encodable},
-    wire_types::WireType,
-};
+//! Internal module. Should only be used by macros.
 
+pub use crate::VarInt;
+pub use crate::encoding::{Encodable, EncodableMessage, ProtobufSerializer};
+pub use crate::decoding::{Decodable, DecodableMessage, Result, Deserializer};
+pub use crate::wire_types::*;
 pub use bytes::{Buf, BufMut};
 
 pub struct __ConstBoundWorkaround<T>(T);
-
-arbitrary_seal!(for<T> (__ConstBoundWorkaround<T>));
 
 impl<T: Encodable> Encodable for __ConstBoundWorkaround<T> {
     type Wire = T::Wire;

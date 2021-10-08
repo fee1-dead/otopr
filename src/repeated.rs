@@ -3,9 +3,9 @@ use std::marker::PhantomData;
 use bytes::BufMut;
 
 use crate::decoding::Decodable;
-use crate::VarInt;
-use crate::traits::Encodable;
+use crate::encoding::Encodable;
 use crate::wire_types::WireType;
+use crate::VarInt;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[repr(transparent)]
@@ -70,7 +70,9 @@ where
 {
     type Wire = T::Wire;
 
-    fn decode<B: bytes::Buf>(deserializer: &mut crate::decoding::Deserializer<'de, B>) -> crate::decoding::Result<Self> {
+    fn decode<B: bytes::Buf>(
+        deserializer: &mut crate::decoding::Deserializer<'de, B>,
+    ) -> crate::decoding::Result<Self> {
         let mut val = Self::default();
         val.0.extend([T::decode(deserializer)?]);
         Ok(val)
@@ -80,10 +82,11 @@ where
         self.0.extend(other.0)
     }
 
-    fn merge_from<B: bytes::Buf>(&mut self, deserializer: &mut crate::decoding::Deserializer<'de, B>) -> crate::decoding::Result<()> {
+    fn merge_from<B: bytes::Buf>(
+        &mut self,
+        deserializer: &mut crate::decoding::Deserializer<'de, B>,
+    ) -> crate::decoding::Result<()> {
         self.0.extend([T::decode(deserializer)?]);
         Ok(())
     }
 }
-
-arbitrary_seal!(for<T, C> (Repeated<T, C>));

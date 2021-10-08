@@ -1,8 +1,12 @@
 use bytes::BufMut;
 
-use crate::{Fixed32, Fixed64, VarInt, decoding::{Decodable, DecodingError}, traits::{Encodable, Signable, private::ArbitrarySealed}, wire_types::*};
-
-
+use crate::{
+    decoding::{Decodable, DecodingError},
+    encoding::Encodable,
+    traits::Signable,
+    wire_types::*,
+    Fixed32, Fixed64, VarInt,
+};
 
 macro_rules! signable {
     ($($id:ident($storage: ty)),*) => {$(
@@ -68,16 +72,13 @@ impl Encodable for bool {
 impl Decodable<'_> for bool {
     type Wire = VarIntWire;
 
-    fn decode<B: bytes::Buf>(deserializer: &mut crate::decoding::Deserializer<'_, B>) -> crate::decoding::Result<Self> {
+    fn decode<B: bytes::Buf>(
+        deserializer: &mut crate::decoding::Deserializer<'_, B>,
+    ) -> crate::decoding::Result<Self> {
         match deserializer.get_u8() {
             0b0000_0001 => Ok(true),
             0b0000_0000 => Ok(false),
-            _ => Err(DecodingError::VarIntOverflow)
+            _ => Err(DecodingError::VarIntOverflow),
         }
     }
 }
-
-arbitrary_seal!((str), (bool));
-
-impl<'a, T: ArbitrarySealed + ?Sized> ArbitrarySealed for &'a T {}
-impl<'a, T: ArbitrarySealed + ?Sized> ArbitrarySealed for &'a mut T {}

@@ -1,9 +1,96 @@
-use proc_macro2::TokenStream as Ts2;
+use proc_macro2::{Span, TokenStream as Ts2};
 
 use quote::quote;
-use syn::DeriveInput;
+use syn::{DeriveInput, Error, Type};
 
 use crate::common::*;
+
+impl Field {
+    pub fn encoded_size(&self) -> Ts2 {
+        let Field {
+            member,
+            ty,
+            cfg: FieldConfig { field_number, .. },
+            ..
+        } = self;
+        quote! {
+            <#ty as ::otopr::__private::Encodable>::encoded_size(&self.#member, #field_number)
+        }
+    }
+
+    pub fn encode(&self) -> syn::Result<Ts2> {
+        let field_tag = self.preencoded_field_tag()?;
+        let Field { member, ty, .. } = self;
+        Ok(quote! {
+            unsafe {
+                <#ty as ::otopr::__private::Encodable>::encode_field_precomputed(&self.#member, s, &#field_tag);
+            }
+        })
+    }
+
+    pub fn preencoded_field_tag(&self) -> syn::Result<Ts2> {
+        let Field {
+            ty,
+            cfg:
+                FieldConfig {
+                    field_number,
+                    field_number_span,
+                },
+            ..
+        } = self;
+        Self::preencode_field_tag(*field_number, ty, *field_number_span)
+    }
+
+    /// given the field number and its type, return the expression that evaluates to preencoded field tag data.
+    fn preencode_field_tag(n: u64, ty: &Type, sp: Span) -> syn::Result<Ts2> {
+        macro_rules! err {
+            ($msg: expr) => {
+                return Err(Error::new(sp, $msg))
+            };
+        }
+
+        let num_bytes_it_takes = if n == 0 {
+            err!("field number cannot be zero")
+        } else {
+            Self::field_tag_num_bytes(n, sp)?
+        };
+
+        Ok(quote! {
+            ::otopr::__private::precompute_field_varint::<#ty, #num_bytes_it_takes>(#n)
+        })
+    }
+
+    fn field_tag_num_bytes(n: u64, sp: Span) -> syn::Result<usize> {
+        Ok(if n < (1 << 4) {
+            // 0aaaabbb where bbb is wire type.
+            1
+        } else if n < (1 << 11) {
+            // 0aaaaaaa 0aaaabbb, +7 bits available
+            2
+        } else if n < (1 << 18) {
+            // +7 bits
+            3
+        } else if n < (1 << 25) {
+            // ...
+            4
+        } else if n < (1 << 32) {
+            5
+        } else if n < (1 << 39) {
+            6
+        } else if n < (1 << 46) {
+            7
+        } else if n < (1 << 53) {
+            8
+        } else if n < (1 << 60) {
+            9
+        } else if n < (1 << 61) {
+            // 61 bits field number, 3 bits wire type
+            10
+        } else {
+            return Err(syn::Error::new(sp, "field number is too big!"));
+        })
+    }
+}
 
 pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
     let name = input.ident;
@@ -13,22 +100,24 @@ pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
     let fields = fields_from(input.data)?;
 
     let field_encoded_sizes = fields.iter().map(Field::encoded_size);
-    let field_encodes: Vec<_> = fields.iter().map(Field::encode).collect::<SynResult<_>>().inner()?;
+    let field_encodes: Vec<_> = fields
+        .iter()
+        .map(Field::encode)
+        .collect::<SynResult<_>>()
+        .inner()?;
 
     let methods = quote! {
         fn encoded_size(&self) -> usize {
             0 #(+ #field_encoded_sizes)*
         }
-        fn encode<T: ::otopr::__private::BufMut>(&self, s: &mut ::otopr::encoding::ProtobufSerializer<T>) {
+        fn encode<T: ::otopr::__private::BufMut>(&self, s: &mut ::otopr::__private::ProtobufSerializer<T>) {
             #(#field_encodes)*
         }
     };
 
-
     Ok(quote! {
-        impl #generics ::otopr::traits::EncodableMessage for #name #generics {
+        impl #generics ::otopr::__private::EncodableMessage for #name #generics {
             #methods
         }
     })
 }
-

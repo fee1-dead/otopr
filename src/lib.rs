@@ -9,14 +9,6 @@ pub use otopr_derive::*;
 #[macro_use]
 mod macros {
     #[macro_export]
-    macro_rules! arbitrary_seal {
-        ($($(for<$($id:ident$(: $bound:path)?),+ $(,)?>)? ($ty:ty)),+ $(,)?) => {
-            $(
-                impl$(<$($id$(: $bound)?),*>)? crate::traits::private::ArbitrarySealed for $ty {}
-            )*
-        };
-    }
-    #[macro_export]
     macro_rules! seal {
         ($(for$(<$($id:ident$(: $bound:path)?),+ $(,)?>)? $ty:ty),+ $(,)?) => {
             $(
@@ -30,8 +22,8 @@ pub mod prelude;
 
 pub mod traits;
 
-pub mod encoding;
 pub mod decoding;
+pub mod encoding;
 
 mod repeated;
 pub use repeated::Repeated;
@@ -52,8 +44,6 @@ pub mod __private;
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
 #[repr(transparent)]
 pub struct Packed<T>(T);
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
 #[repr(transparent)]

@@ -2,7 +2,7 @@ use std::iter::FromIterator;
 use std::time::SystemTime;
 
 use proc_macro2::{Ident, Span, TokenStream as Ts2};
-use syn::{Attribute, Data, Error, LitInt, Member, PathArguments, Token, Type, TypeArray, TypeGroup, TypeParen, TypePath, TypePtr, TypeReference, TypeSlice, TypeTuple, parenthesized, parse::{ParseStream, Parser}, parse2, spanned::Spanned};
+use syn::{Attribute, Data, Error, GenericArgument, LitInt, Member, PathArguments, Token, Type, TypeArray, TypeGroup, TypeParen, TypePath, TypePtr, TypeReference, TypeSlice, TypeTuple, parenthesized, parse::{ParseStream, Parser}, parse2, spanned::Spanned};
 
 pub fn fields_from(input: Data) -> syn::Result<Vec<Field>> {
     let fields = match input {
@@ -54,7 +54,13 @@ fn clean_ty(mut ty: Type) -> Type {
             Type::Tuple(TypeTuple { elems, .. }) => elems.iter_mut().for_each(clean_ty_inner),
             Type::Path(TypePath { path, .. }) => {
                 for segment in &mut path.segments {
-                    segment.arguments = PathArguments::None;
+                    if let PathArguments::AngleBracketed(args) = &mut segment.arguments {
+                        for arg in &mut args.args {
+                            if let GenericArgument::Lifetime(lt) = arg {
+                                lt.ident = Ident::new("_", lt.ident.span());
+                            }
+                        }
+                    }
                 }
             },
             _ => unimplemented!(),

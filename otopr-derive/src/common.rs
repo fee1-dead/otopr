@@ -2,13 +2,7 @@ use std::iter::FromIterator;
 use std::time::SystemTime;
 
 use proc_macro2::{Ident, Span, TokenStream as Ts2};
-use syn::{
-    parenthesized,
-    parse::{ParseStream, Parser},
-    parse2,
-    spanned::Spanned,
-    Attribute, Data, Error, LitInt, Member, Token, Type,
-};
+use syn::{Attribute, Data, Error, LitInt, Member, PathArguments, Token, Type, TypeArray, TypeGroup, TypeParen, TypePath, TypePtr, TypeReference, TypeSlice, TypeTuple, parenthesized, parse::{ParseStream, Parser}, parse2, spanned::Spanned};
 
 pub fn fields_from(input: Data) -> syn::Result<Vec<Field>> {
     let fields = match input {
@@ -33,6 +27,7 @@ pub fn fields_from(input: Data) -> syn::Result<Vec<Field>> {
 pub struct Field {
     pub member: Member,
     pub ty: Type,
+    pub clean_ty: Type,
     pub cfg: FieldConfig,
     pub const_ident: Ident,
 }
@@ -47,12 +42,35 @@ pub fn random_ident_str() -> String {
     )
 }
 
+fn clean_ty(mut ty: Type) -> Type {
+    fn clean_ty_inner(ty: &mut Type) {
+        match ty {
+            Type::Array(TypeArray { elem, .. })
+            | Type::Group(TypeGroup { elem, .. })
+            | Type::Ptr(TypePtr { elem, .. })
+            | Type::Reference(TypeReference { elem, .. })
+            | Type::Slice(TypeSlice { elem, .. })
+            | Type::Paren(TypeParen { elem, .. }) => clean_ty_inner(elem),
+            Type::Tuple(TypeTuple { elems, .. }) => elems.iter_mut().for_each(clean_ty_inner),
+            Type::Path(TypePath { path, .. }) => {
+                for segment in &mut path.segments {
+                    segment.arguments = PathArguments::None;
+                }
+            },
+            _ => unimplemented!(),
+        }
+    }
+    clean_ty_inner(&mut ty);
+    ty
+}
+
 impl Field {
     pub fn new(n: usize, f: syn::Field) -> syn::Result<Self> {
         let span = f.ident.as_ref().map_or_else(|| f.ty.span(), |i| i.span());
         Ok(Self {
             member: f.ident.map_or_else(|| Member::from(n), Member::from),
-            ty: f.ty,
+            ty: f.ty.clone(),
+            clean_ty: clean_ty(f.ty),
             cfg: FieldConfig::from_attrs(f.attrs, span)?,
             const_ident: Ident::new(&random_ident_str(), Span::call_site()),
         })

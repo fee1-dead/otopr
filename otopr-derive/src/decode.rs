@@ -20,13 +20,13 @@ impl Field {
 
     pub fn const_def(&self, cty: &Ts2) -> Ts2 {
         let Field {
-            ty,
+            clean_ty,
             const_ident,
             cfg: FieldConfig { field_number, .. },
             ..
         } = self;
         quote! {
-            const #const_ident: #cty = (#field_number << 3) as #cty | <<#ty as ::otopr::__private::Decodable>::Wire as ::otopr::__private::WireType>::BITS;
+            const #const_ident: #cty = (#field_number << 3) as #cty | <<#clean_ty as ::otopr::__private::Decodable>::Wire as ::otopr::__private::WireType>::BITS;
         }
     }
 

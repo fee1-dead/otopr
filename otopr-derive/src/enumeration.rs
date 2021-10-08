@@ -220,18 +220,19 @@ pub fn derive_enumeration(input: DeriveInput) -> syn::Result<Ts2> {
         impl<'a> ::otopr::__private::Decodable<'a> for #name {
             type Wire = ::otopr::__private::VarIntWire;
             fn decode<B: ::otopr::__private::Buf>(deserializer: &mut ::otopr::__private::Deserializer<'a, B>) -> ::otopr::__private::Result<Self> {
-                let n: #storage_ty = deserializer.read_varint()?;
-                Ok(match n {
-                    #(#variant_discrs => Self::#variant_idents,)*
-                    _ => Self::#default,
+                Ok(match <#storage_ty as ::otopr::__private::VarInt>::read_field_tag(deserializer) {
+                    #(Ok(#variant_discrs) => Self::#variant_idents,)*
+                    Ok(_) | Err(Ok(_)) => Self::#default,
+                    Err(Err(e)) => return Err(e),
                 })
             }
-            fn merge_from<B: ::otopr::__private::Buf>(&mut self, deserializer: &mut ::otopr::__private::Deserializer<'a, B>) -> ::otopr::__private::Result<Self> {
-                let n: #storage_ty = deserializer.read_varint()?;
-                Ok(match n {
-                    #(#variant_discrs => *self = Self::#variant_idents,)*
-                    _ => {},
-                })
+            fn merge_from<B: ::otopr::__private::Buf>(&mut self, deserializer: &mut ::otopr::__private::Deserializer<'a, B>) -> ::otopr::__private::Result<()> {
+                match <#storage_ty as ::otopr::__private::VarInt>::read_field_tag(deserializer) {
+                    #(Ok(#variant_discrs) => *self = Self::#variant_idents,)*
+                    Ok(_) | Err(Ok(_)) => {}
+                    Err(Err(e)) => return Err(e),
+                }
+                Ok(())
             }
         }
     })

@@ -191,6 +191,12 @@ impl<'de, B: Buf> Deserializer<'de, B> {
     }
 }
 
+impl<'de, B: Buf> From<&'de mut B> for Deserializer<'de, B> {
+    fn from(b: &'de mut B) -> Self {
+        Self::new(b)
+    }
+}
+
 impl<'de> Decodable<'de> for &'de [u8] {
     type Wire = LengthDelimitedWire;
 

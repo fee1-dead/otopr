@@ -88,6 +88,12 @@ impl<T: bytes::BufMut> ProtobufSerializer<T> {
     }
 }
 
+impl<T: BufMut> From<T> for ProtobufSerializer<T> {
+    fn from(buf: T) -> Self {
+        Self::new(buf)
+    }
+}
+
 impl Encodable for Fixed32 {
     type Wire = Fixed32Wire;
 

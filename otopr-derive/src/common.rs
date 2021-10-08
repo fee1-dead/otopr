@@ -56,8 +56,10 @@ fn clean_ty(mut ty: Type) -> Type {
                 for segment in &mut path.segments {
                     if let PathArguments::AngleBracketed(args) = &mut segment.arguments {
                         for arg in &mut args.args {
-                            if let GenericArgument::Lifetime(lt) = arg {
-                                lt.ident = Ident::new("_", lt.ident.span());
+                            match arg {
+                                GenericArgument::Lifetime(lt) => lt.ident = Ident::new("_", lt.ident.span()),
+                                GenericArgument::Type(ty) => clean_ty_inner(ty),
+                                _ => {}
                             }
                         }
                     }

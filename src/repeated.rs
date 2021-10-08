@@ -9,7 +9,13 @@ use crate::VarInt;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[repr(transparent)]
-pub struct Repeated<Item, C = Vec<Item>>(C, PhantomData<Item>);
+pub struct Repeated<Item, C = Vec<Item>>(pub C, PhantomData<Item>);
+
+impl<Item, C> Repeated<Item, C> {
+    pub fn new(collection: C) -> Self {
+        Self(collection, PhantomData)
+    }
+}
 
 impl<T, C: Default> Default for Repeated<T, C> {
     fn default() -> Self {

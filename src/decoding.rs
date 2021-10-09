@@ -2,7 +2,7 @@ use std::{borrow::Cow, str::Utf8Error};
 
 use bytes::Buf;
 
-use crate::{wire_types::*, Message, VarInt};
+use crate::{Message, VarInt, wire_types::*};
 
 pub trait Decodable<'de>: Sized {
     type Wire: WireType;
@@ -37,6 +37,7 @@ pub trait DecodableMessage<'de>: Sized {
         deserializer: &mut Deserializer<'de, B>,
         tag: Self::Tag,
     ) -> Result<()>;
+
     fn decode<B: Buf>(deserializer: &mut Deserializer<'de, B>) -> Result<Self>
     where
         Self: Default,

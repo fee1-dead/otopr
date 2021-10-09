@@ -8,11 +8,11 @@ fn test1() -> crate::decoding::Result<()> {
     struct Test1(#[otopr(1)] i32);
 
     let mut buf = Vec::with_capacity(3);
-    Test1(150).encode(&mut ProtobufSerializer::new(&mut buf));
+    EncodableMessage::encode(&Test1(150), &mut ProtobufSerializer::new(&mut buf));
 
     assert_eq!(&[0x08, 0x96, 0x01], buf.as_slice());
 
-    let t = Test1::decode(&mut Deserializer::new(&mut buf.as_slice()))?;
+    let t: Test1 = DecodableMessage::decode(&mut Deserializer::new(&mut buf.as_slice()))?;
     assert_eq!(t.0, 150);
     Ok(())
 }
@@ -25,7 +25,7 @@ fn test2() {
     struct Test2<'a>(#[otopr(2)] &'a str);
 
     let mut buf = Vec::with_capacity(9);
-    Test2("testing").encode(&mut (&mut buf).into());
+    EncodableMessage::encode(&Test2("testing"), &mut (&mut buf).into());
 
     assert_eq!(
         &[0x12, 0x07, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67],

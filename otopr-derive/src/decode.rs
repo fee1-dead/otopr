@@ -66,6 +66,18 @@ impl Field {
             _ => unreachable!(),
         })
     }
+
+    pub fn merge(&self) -> Ts2 {
+        let Field {
+            member,
+            ty,
+            ..
+        } = self;
+
+        quote! {
+            <#ty as ::otopr::__private::Decodable<'de>>::merge(&mut self.#member, other.#member);
+        }
+    }
 }
 
 pub(crate) fn derive_decodable_message(input: DeriveInput) -> syn::Result<Ts2> {
@@ -89,6 +101,7 @@ pub(crate) fn derive_decodable_message(input: DeriveInput) -> syn::Result<Ts2> {
 
     let const_defs = fields.iter().map(|f| f.const_def(cty));
     let match_arms = fields.iter().map(Field::match_arm);
+    let merges = fields.iter().map(Field::merge);
 
     let methods = quote! {
         type Tag = #cty;
@@ -105,6 +118,19 @@ pub(crate) fn derive_decodable_message(input: DeriveInput) -> syn::Result<Ts2> {
         #(#const_defs)*
         impl #impl_generics ::otopr::__private::DecodableMessage<'de> for #name #generics {
             #methods
+        }
+        impl #impl_generics ::otopr::__private::Decodable<'de> for #name #generics where Self: Default {
+            type Wire = ::otopr::__private::LengthDelimitedWire;
+            fn decode<B: ::otopr::__private::Buf>(d: &mut ::otopr::__private::Deserializer<'de, B>) -> ::otopr::__private::Result<Self> {
+                let len = d.read_varint()?;
+                let tk = d.set_limit(len);
+                let message = <Self as ::otopr::__private::DecodableMessage<'de>>::decode(d);
+                d.reset_limit(tk);
+                Ok(message?)
+            }
+            fn merge(&mut self, other: Self) {
+                #(#merges)*
+            }
         }
     })
 }

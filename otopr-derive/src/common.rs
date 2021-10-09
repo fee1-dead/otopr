@@ -16,10 +16,18 @@ pub fn fields_from(input: Data) -> syn::Result<Vec<Field>> {
         Data::Union(_) => return Err(Error::new(Span::call_site(), "unions are not supported")),
     };
 
+    let mut default_field_number = 1;
+
     fields
         .into_iter()
         .enumerate()
-        .map(|(n, field)| Field::new(n, field))
+        .map(|(n, field)| { 
+            let res = Field::new(n, field, default_field_number);
+            if let Ok(f) = &res {
+                default_field_number = f.cfg.field_number + 1;
+            }
+            res
+        })
         .collect::<SynResult<_>>()
         .inner()
 }
@@ -73,13 +81,13 @@ fn clean_ty(mut ty: Type) -> Type {
 }
 
 impl Field {
-    pub fn new(n: usize, f: syn::Field) -> syn::Result<Self> {
+    pub fn new(n: usize, f: syn::Field, default_field_number: u64) -> syn::Result<Self> {
         let span = f.ident.as_ref().map_or_else(|| f.ty.span(), |i| i.span());
         Ok(Self {
             member: f.ident.map_or_else(|| Member::from(n), Member::from),
             ty: f.ty.clone(),
             clean_ty: clean_ty(f.ty),
-            cfg: FieldConfig::from_attrs(f.attrs, span)?,
+            cfg: FieldConfig::from_attrs(f.attrs, span, default_field_number)?,
             const_ident: Ident::new(&random_ident_str(), Span::call_site()),
         })
     }
@@ -91,7 +99,7 @@ pub struct FieldConfig {
 }
 
 impl FieldConfig {
-    pub fn from_attrs(attrs: Vec<Attribute>, sp: Span) -> syn::Result<Self> {
+    pub fn from_attrs(attrs: Vec<Attribute>, sp: Span, default_field_number: u64) -> syn::Result<Self> {
         macro_rules! try_opt {
             ($e:expr, $msg: literal) => {
                 match $e {
@@ -124,7 +132,7 @@ impl FieldConfig {
             }
         }
 
-        let field_number = try_opt!(field_number, "missing field number for field");
+        let field_number = field_number.unwrap_or(default_field_number);
         Ok(FieldConfig {
             field_number,
             field_number_span,

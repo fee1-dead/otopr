@@ -8,6 +8,12 @@ use crate::{wire_types::*, VarInt};
 
 pub struct Map<K, V, T = HashMap<K, V>>(T, PhantomData<(K, V)>);
 
+impl<K, V, T: Default> Default for Map<K, V, T> {
+    fn default() -> Self {
+        Self(T::default(), PhantomData)
+    }
+}
+
 impl<K, V, T> Encodable for Map<K, V, T>
 where
     for<'a> &'a T: IntoIterator<Item = (&'a K, &'a V)>,

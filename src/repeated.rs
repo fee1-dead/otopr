@@ -1,4 +1,5 @@
 use std::marker::PhantomData;
+use std::ops::Deref;
 
 use bytes::BufMut;
 
@@ -23,9 +24,10 @@ impl<T, C: Default> Default for Repeated<T, C> {
     }
 }
 
-impl<T, C> Encodable for Repeated<T, C>
+impl<It, T, C> Encodable for Repeated<T, C>
 where
-    for<'a> &'a C: IntoIterator<Item = &'a T>,
+    C: Deref<Target = It>,
+    for<'a> &'a It: IntoIterator<Item = &'a T>,
     T: Encodable,
 {
     type Wire = T::Wire;
@@ -40,7 +42,7 @@ where
         field_number: V,
     ) {
         let var = field_number << 3 | V::from(T::Wire::BITS);
-        for t in &self.0 {
+        for t in &*self.0 {
             s.write_varint(var);
             t.encode(s);
         }
@@ -61,7 +63,7 @@ where
         s: &mut crate::encoding::ProtobufSerializer<impl BufMut>,
         field_number: &[u8],
     ) {
-        for t in &self.0 {
+        for t in &*self.0 {
             s.write_bytes(field_number);
             t.encode(s);
         }

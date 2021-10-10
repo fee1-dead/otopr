@@ -32,6 +32,7 @@ mod varint;
 pub use varint::VarInt;
 
 mod map;
+pub use map::Map;
 
 #[cfg(test)]
 pub mod tests;

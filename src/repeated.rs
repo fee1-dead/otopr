@@ -26,6 +26,7 @@ impl<T, C: Default> Default for Repeated<T, C> {
 
 impl<It, T, C> Encodable for Repeated<T, C>
 where
+    It: ?Sized,
     C: Deref<Target = It>,
     for<'a> &'a It: IntoIterator<Item = &'a T>,
     T: Encodable,

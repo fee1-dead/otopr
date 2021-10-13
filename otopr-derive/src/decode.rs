@@ -126,7 +126,7 @@ pub(crate) fn derive_decodable_message(input: DeriveInput) -> syn::Result<Ts2> {
                 let tk = d.set_limit(len);
                 let message = <Self as ::otopr::__private::DecodableMessage<'de>>::decode(d);
                 d.reset_limit(tk);
-                Ok(message?)
+                message
             }
             fn merge(&mut self, other: Self) {
                 #(#merges)*

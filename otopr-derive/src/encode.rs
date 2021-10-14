@@ -10,9 +10,16 @@ impl Field {
         let Field {
             member,
             ty,
-            cfg: FieldConfig { field_number, .. },
+            cfg: FieldConfig { field_number, encode_via, .. },
             ..
         } = self;
+
+        let mut ty = ty;
+
+        if let Some((t1, _)) = encode_via {
+            ty = t1;
+        } 
+
         quote! {
             <#ty as ::otopr::__private::Encodable>::encoded_size(&self.#member, #field_number)
         }

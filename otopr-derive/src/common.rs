@@ -165,7 +165,7 @@ impl Parse for OtoprAttr {
                             let expr = content.parse()?;
                             via = Some((ty, expr));
                         } else {
-                            return Err(Error::new_spanned(id, "expected 'via'"));
+                            return Err(Error::new_spanned(id, "expected 'encode_via'"));
                         }
                     } else {
                         return Err(lookahead.error());

@@ -14,14 +14,17 @@ impl Field {
             ..
         } = self;
 
-        let mut ty = ty;
 
-        if let Some((t1, _)) = encode_via {
-            ty = t1;
-        } 
-
-        quote! {
-            <#ty as ::otopr::__private::Encodable>::encoded_size(&self.#member, #field_number)
+        if let Some((ty, expr)) = encode_via {
+            quote! {{
+                let x = &self.#member;
+                let encode: #ty = #expr;
+                <#ty as ::otopr::__private::Encodable>::encoded_size(&encode, #field_number)
+            }}
+        } else {
+            quote! {{
+                <#ty as ::otopr::__private::Encodable>::encoded_size(&self.#member, #field_number)
+            }}
         }
     }
 
@@ -48,9 +51,15 @@ impl Field {
         Ok(tt)
     }
 
+    pub fn ty(&self) -> &Type {
+        match &self.cfg.encode_via {
+            Some((ty, _)) => ty,
+            None => &self.ty,
+        }
+    }
+
     pub fn preencoded_field_tag(&self) -> syn::Result<Ts2> {
         let Field {
-            ty,
             cfg:
                 FieldConfig {
                     field_number,
@@ -59,6 +68,7 @@ impl Field {
                 },
             ..
         } = self;
+        let ty = self.ty();
         Self::preencode_field_tag(*field_number, ty, *field_number_span)
     }
 

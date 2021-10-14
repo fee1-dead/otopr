@@ -20,12 +20,25 @@ impl Field {
 
     pub fn encode(&self) -> syn::Result<Ts2> {
         let field_tag = self.preencoded_field_tag()?;
-        let Field { member, ty, .. } = self;
-        Ok(quote! {
-            unsafe {
-                <#ty as ::otopr::__private::Encodable>::encode_field_precomputed(&self.#member, s, &#field_tag);
+        let Field { member, ty, cfg: FieldConfig { encode_via, .. }, .. } = self;
+        let tt = if let Some((newty, expr)) = encode_via {
+            quote! {
+                {
+                    let x = &self.#member;
+                    let encode: #newty = #expr;
+                    unsafe {
+                        <#newty as ::otopr::__private::Encodable>::encode_field_precomputed(&encode, s, &#field_tag);
+                    }
+                }
             }
-        })
+        } else {
+            quote! {
+                unsafe {
+                    <#ty as ::otopr::__private::Encodable>::encode_field_precomputed(&self.#member, s, &#field_tag);
+                }
+            }
+        };
+        Ok(tt)
     }
 
     pub fn preencoded_field_tag(&self) -> syn::Result<Ts2> {
@@ -35,6 +48,7 @@ impl Field {
                 FieldConfig {
                     field_number,
                     field_number_span,
+                    ..
                 },
             ..
         } = self;
@@ -121,14 +135,14 @@ pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
         }
         impl #generics ::otopr::__private::Encodable for #name #generics {
             type Wire = ::otopr::__private::LengthDelimitedWire;
-        
+
             fn encoded_size<V: ::otopr::__private::VarInt>(&self, field_number: V) -> usize {
                 let calc_size = ::otopr::__private::EncodableMessage::encoded_size(self);
-        
+
                 // encode field number, the size as varint, plus the bytes that follow.
                 ::otopr::__private::VarInt::size(field_number) + ::otopr::__private::VarInt::size(calc_size) + calc_size
             }
-        
+
             fn encode(&self, s: &mut ::otopr::__private::ProtobufSerializer<impl ::otopr::__private::BufMut>) {
                 s.write_varint(::otopr::__private::EncodableMessage::encoded_size(self));
                 ::otopr::__private::EncodableMessage::encode(self, s)

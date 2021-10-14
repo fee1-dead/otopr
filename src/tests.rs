@@ -1,4 +1,7 @@
-use crate::{decoding::{Decodable, DecodableMessage, Deserializer}, encoding::{Encodable, EncodableMessage, ProtobufSerializer}};
+use crate::{
+    decoding::{Decodable, DecodableMessage, Deserializer},
+    encoding::{Encodable, EncodableMessage, ProtobufSerializer},
+};
 
 #[test]
 fn test1() -> crate::decoding::Result<()> {
@@ -76,11 +79,11 @@ fn test_enumeration() -> otopr::decoding::Result<()> {
             $num.encode(&mut (&mut buf).into());
 
             let case = Foo::decode(&mut (&mut buf.as_slice()).into())?;
-        
+
             assert_eq!(Foo::$variant, case);
-        
+
             buf.clear();
-        }
+        };
     }
 
     case!(Bar = 0);

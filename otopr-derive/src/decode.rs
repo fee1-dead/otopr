@@ -68,11 +68,7 @@ impl Field {
     }
 
     pub fn merge(&self) -> Ts2 {
-        let Field {
-            member,
-            ty,
-            ..
-        } = self;
+        let Field { member, ty, .. } = self;
 
         quote! {
             <#ty as ::otopr::__private::Decodable<'de>>::merge(&mut self.#member, other.#member);

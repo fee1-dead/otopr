@@ -194,8 +194,7 @@ pub fn derive_enumeration(input: DeriveInput) -> syn::Result<Ts2> {
         .map(|v| (v.name, v.discriminant))
         .unzip();
 
-    let (cid, cdef): (Vec<_>, Vec<_>) =
-        varint_bytes.into_iter().map(const_bytes).unzip();
+    let (cid, cdef): (Vec<_>, Vec<_>) = varint_bytes.into_iter().map(const_bytes).unzip();
 
     Ok(quote! {
         #(#cdef)*

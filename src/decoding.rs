@@ -2,7 +2,7 @@ use std::{borrow::Cow, str::Utf8Error};
 
 use bytes::Buf;
 
-use crate::{Message, VarInt, wire_types::*};
+use crate::{wire_types::*, Message, VarInt};
 
 pub trait Decodable<'de>: Sized {
     type Wire: WireType;

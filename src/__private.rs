@@ -1,9 +1,9 @@
 //! Internal module. Should only be used by macros.
 
-pub use crate::VarInt;
+pub use crate::decoding::{Decodable, DecodableMessage, Deserializer, Result};
 pub use crate::encoding::{Encodable, EncodableMessage, ProtobufSerializer};
-pub use crate::decoding::{Decodable, DecodableMessage, Result, Deserializer};
 pub use crate::wire_types::*;
+pub use crate::VarInt;
 pub use bytes::{Buf, BufMut};
 
 pub struct __ConstBoundWorkaround<T>(T);

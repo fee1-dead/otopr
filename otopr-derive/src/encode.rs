@@ -108,7 +108,8 @@ impl Field {
 
 pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
     let name = input.ident;
-    let mut generics = input.generics;
+    let impl_generics = input.generics;
+    let mut generics = impl_generics.clone();
     generics.type_params_mut().for_each(|f| f.bounds.clear());
 
     let fields = fields_from(input.data)?;
@@ -130,10 +131,10 @@ pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
     };
 
     Ok(quote! {
-        impl #generics ::otopr::__private::EncodableMessage for #name #generics {
+        impl #impl_generics ::otopr::__private::EncodableMessage for #name #generics {
             #methods
         }
-        impl #generics ::otopr::__private::Encodable for #name #generics {
+        impl #impl_generics ::otopr::__private::Encodable for #name #generics {
             type Wire = ::otopr::__private::LengthDelimitedWire;
 
             fn encoded_size<V: ::otopr::__private::VarInt>(&self, field_number: V) -> usize {

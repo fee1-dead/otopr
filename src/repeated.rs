@@ -10,21 +10,21 @@ use crate::VarInt;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[repr(transparent)]
-pub struct Repeated<Item, C = Vec<Item>>(pub C, PhantomData<Item>);
+pub struct Repeated<Item: ?Sized, C = Vec<Item>>(pub C, PhantomData<Item>);
 
-impl<Item, C> Repeated<Item, C> {
+impl<Item: ?Sized, C> Repeated<Item, C> {
     pub fn new(collection: C) -> Self {
         Self(collection, PhantomData)
     }
 }
 
-impl<T, C: Default> Default for Repeated<T, C> {
+impl<T: ?Sized, C: Default> Default for Repeated<T, C> {
     fn default() -> Self {
         Self(Default::default(), PhantomData)
     }
 }
 
-impl<It, T, C> Encodable for Repeated<T, C>
+impl<It, T: ?Sized, C> Encodable for Repeated<T, C>
 where
     It: ?Sized,
     C: Deref<Target = It>,

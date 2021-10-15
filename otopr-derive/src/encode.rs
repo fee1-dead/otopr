@@ -138,8 +138,6 @@ pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
     };
 
     generics.type_params_mut().for_each(|f| f.bounds.clear());
-    generics.where_clause = where_clause;
-
 
     let fields = fields_from(input.data)?;
 
@@ -160,10 +158,10 @@ pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
     };
 
     Ok(quote! {
-        impl #impl_generics ::otopr::__private::EncodableMessage for #name #generics {
+        impl #impl_generics ::otopr::__private::EncodableMessage for #name #generics #where_clause {
             #methods
         }
-        impl #impl_generics ::otopr::__private::Encodable for #name #generics {
+        impl #impl_generics ::otopr::__private::Encodable for #name #generics #where_clause {
             type Wire = ::otopr::__private::LengthDelimitedWire;
 
             fn encoded_size<V: ::otopr::__private::VarInt>(&self, field_number: V) -> usize {

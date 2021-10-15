@@ -30,31 +30,29 @@ where
     for<'a> &'a CDeref: IntoIterator<Item = &'a T, IntoIter = CIter>,
     CDeref: ?Sized,
 {
-    pub fn map<NewIter, F: Fn(CIter) -> NewIter>(&self, f: F) -> RepeatedMap<C, F> {
+    pub fn map<NewIter, F: Fn(CIter) -> NewIter>(&self, f: F) -> RepeatedMap<CIter, F> {
         RepeatedMap {
-            collection: &self.0,
+            collection: self.0.into_iter(),
             map: f,
         }
     }
 }
 
-pub struct RepeatedMap<'a, C, F> {
-    collection: &'a C,
+pub struct RepeatedMap<Iter, F> {
+    collection: Iter,
     map: F,
 }
 
-impl<'a, C, F, It, IntoIt, NewIt, Item> RepeatedMap<'a, C, F>
+impl<'a, F, IntoIt, NewIt, Item> RepeatedMap<IntoIt, F>
 where
-    C: Deref<Target = It>,
-    It: ?Sized + 'a,
-    &'a It: IntoIterator<IntoIter = IntoIt>,
     F: Fn(IntoIt) -> NewIt,
+    IntoIt: Clone,
     NewIt: Iterator<Item = &'a Item>,
     Item: ?Sized + Encodable + 'a,
 {
     fn mk_encoder(&self) -> RepeatedEncoder<'a, Item, NewIt>
     {
-        RepeatedEncoder((self.map)(self.collection.into_iter()))
+        RepeatedEncoder((self.map)(self.collection.clone()))
     }
 }
 
@@ -114,14 +112,12 @@ where
     mk_encoder_trait_impls!();   
 }
 
-impl<'a, C, F, It, IntoIt, NewIt, Item> Encodable for RepeatedMap<'a, C, F>
+impl<'a, F, IntoIt, NewIt, Item> Encodable for RepeatedMap<IntoIt, F>
 where
-    C: Deref<Target = It>,
-    It: ?Sized + 'a,
-    &'a It: IntoIterator<IntoIter = IntoIt>,
     F: Fn(IntoIt) -> NewIt,
     NewIt: Iterator<Item = &'a Item>,
     Item: ?Sized + Encodable + 'a,
+    IntoIt: Clone,
 {
     type Wire = Item::Wire;
 

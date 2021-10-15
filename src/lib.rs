@@ -27,6 +27,7 @@ pub mod encoding;
 
 mod repeated;
 pub use repeated::Repeated;
+pub use repeated::RepeatedMap;
 
 mod varint;
 pub use varint::VarInt;

@@ -10,6 +10,9 @@ use syn::{
     TypeArray, TypeGroup, TypeParen, TypePath, TypePtr, TypeReference, TypeSlice, TypeTuple,
 };
 
+mod input_cfg;
+pub use input_cfg::*;
+
 pub fn fields_from(input: Data) -> syn::Result<Vec<Field>> {
     let fields = match input {
         Data::Struct(ds) => ds.fields,

@@ -193,38 +193,43 @@ where
 }
 
 mod test {
-    use std::ops::Deref;
+    // use std::ops::Deref;
 
     use otopr::*;
 
     /// Generic struct that holds any sequences of bytes.
     #[derive(otopr::EncodableMessage)]
-    pub struct Testing<T: Deref<Target = TDeref>, TDeref: ?Sized, TItem: AsRef<[u8]>> 
-    where
-        for<'a> &'a TDeref: IntoIterator<Item = &'a TItem>,
-        for<'a> <&'a TDeref as IntoIterator>::IntoIter: Clone,
-    {
-        #[otopr(encode_via(wire_types::LengthDelimitedWire, <&Repeated<TItem, T>>::from(x).map(|it| it.map(AsRef::as_ref))))]
+    #[otopr(encode_extra_type_params(
+        TItem
+    ))]
+    #[otopr(encode_where_clause(
+        where
+            for<'a> &'a T: IntoIterator<Item = &'a TItem>,
+            TItem: AsRef<[u8]>,
+            for<'a> <&'a T as IntoIterator>::IntoIter: Clone,
+    ))]
+    pub struct Testing<T> {
+        #[otopr(encode_via(wire_types::LengthDelimitedWire, <&Repeated<TItem, &T>>::from(&x).map(|it| it.map(AsRef::as_ref))))]
         foo: T,
     }
 
-    /// Assert that the types are well-formed, that is, all predicates on the type's generic parameters are fulfilled.
+    /// Assert that the types are well-formed, that is, all predicates on the type's `Encodable` impl are fulfilled.
     macro_rules! assert_wf {
         ($($ty:ty),+$(,)?) => {
             #[allow(unreachable_code)]
             fn __assert_wf() {
                 $(
-                    let _assert_wf: $ty = todo!();
+                    <$ty as otopr::__private::Encodable>::encoded_size(todo!(), 0);
                 )+
             }
         };
     }
 
     assert_wf! {
-        Testing<Vec<Vec<u8>>, [Vec<u8>], Vec<u8>>,
-        Testing<&'static [&'static str], [&'static str], &'static str>,
-        Testing<&[[u8; 10]; 10], [[u8; 10]; 10], [u8; 10]>,
-        // Testing<[[u8; 10]; 10], [[u8; 10]; 10], [u8; 10]>,
+        Testing<Vec<Vec<u8>>>,
+        //Testing<&'static [&'static str]>,
+        //Testing<&[[u8; 10]; 10]>,
+        Testing<[[u8; 10]; 10]>,
         // ^ does not support yet
     }
 }

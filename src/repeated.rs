@@ -24,13 +24,13 @@ impl<T: ?Sized, C: Default> Default for Repeated<T, C> {
     }
 }
 
-impl<T: ?Sized, C, CDeref, CIter> Repeated<T, C>
+impl<T: ?Sized, C, CDeref> Repeated<T, C>
 where
     C: Deref<Target = CDeref>,
-    for<'a> &'a CDeref: IntoIterator<Item = &'a T, IntoIter = CIter>,
+    for<'a> &'a CDeref: IntoIterator<Item = &'a T>,
     CDeref: ?Sized,
 {
-    pub fn map<NewIter, F: Fn(CIter) -> NewIter>(&self, f: F) -> RepeatedMap<CIter, F> {
+    pub fn map<'a, NewIter, F: Fn(<&'a CDeref as IntoIterator>::IntoIter) -> NewIter>(&'a self, f: F) -> RepeatedMap<<&'a CDeref as IntoIterator>::IntoIter, F> {
         RepeatedMap {
             collection: self.0.into_iter(),
             map: f,

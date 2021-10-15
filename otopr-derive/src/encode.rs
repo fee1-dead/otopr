@@ -1,7 +1,7 @@
 use proc_macro2::{Span, TokenStream as Ts2};
 
 use quote::quote;
-use syn::{DeriveInput, Error, Type};
+use syn::{DeriveInput, Error};
 
 use crate::common::*;
 
@@ -15,11 +15,12 @@ impl Field {
         } = self;
 
 
-        if let Some((ty, expr)) = encode_via {
+        if let Some((_, expr)) = encode_via {
             quote! {{
+                use ::otopr::__private::Encodable;
                 let x = &self.#member;
-                let encode: #ty = #expr;
-                <#ty as ::otopr::__private::Encodable>::encoded_size(&encode, #field_number)
+                let encode = #expr;
+                encode.encoded_size(#field_number)
             }}
         } else {
             quote! {{
@@ -29,36 +30,37 @@ impl Field {
     }
 
     pub fn encode(&self) -> syn::Result<Ts2> {
-        let field_tag = self.preencoded_field_tag()?;
-        let Field { member, ty, cfg: FieldConfig { encode_via, .. }, .. } = self;
-        let tt = if let Some((newty, expr)) = encode_via {
+        let Field { member, ty, cfg: FieldConfig { encode_via, .. }, const_ident_encode, .. } = self;
+        let tt = if let Some((_, expr)) = encode_via {
             quote! {
                 {
+                    use ::otopr::__private::Encodable;
                     let x = &self.#member;
-                    let encode: #newty = #expr;
+                    let encode = #expr;
                     unsafe {
-                        <#newty as ::otopr::__private::Encodable>::encode_field_precomputed(&encode, s, &#field_tag);
+                        encode.encode_field_precomputed(s, &#const_ident_encode);
                     }
                 }
             }
         } else {
             quote! {
                 unsafe {
-                    <#ty as ::otopr::__private::Encodable>::encode_field_precomputed(&self.#member, s, &#field_tag);
+                    <#ty as ::otopr::__private::Encodable>::encode_field_precomputed(&self.#member, s, &#const_ident_encode);
                 }
             }
         };
         Ok(tt)
     }
 
-    pub fn ty(&self) -> &Type {
+    pub fn wire_ty(&self) -> Ts2 {
+        let self_ty = &self.clean_ty;
         match &self.cfg.encode_via {
-            Some((ty, _)) => ty,
-            None => &self.ty,
+            Some((ty, _)) => quote! { #ty },
+            None => quote! { <#self_ty as ::otopr::__private::Encodable>::Wire },
         }
     }
 
-    pub fn preencoded_field_tag(&self) -> syn::Result<Ts2> {
+    pub fn const_def_encode(&self) -> syn::Result<Ts2> {
         let Field {
             cfg:
                 FieldConfig {
@@ -66,28 +68,21 @@ impl Field {
                     field_number_span,
                     ..
                 },
+            const_ident_encode,
             ..
         } = self;
-        let ty = self.ty();
-        Self::preencode_field_tag(*field_number, ty, *field_number_span)
-    }
-
-    /// given the field number and its type, return the expression that evaluates to preencoded field tag data.
-    fn preencode_field_tag(n: u64, ty: &Type, sp: Span) -> syn::Result<Ts2> {
-        macro_rules! err {
-            ($msg: expr) => {
-                return Err(Error::new(sp, $msg))
-            };
-        }
-
-        let num_bytes_it_takes = if n == 0 {
-            err!("field number cannot be zero")
+        let ty = self.wire_ty();
+        let num_bytes_it_takes = if *field_number == 0 {
+            return Err(Error::new(*field_number_span, "field number cannot be zero"));
         } else {
-            Self::field_tag_num_bytes(n, sp)?
+            Self::field_tag_num_bytes(*field_number, *field_number_span)?
         };
-
+        
         Ok(quote! {
-            ::otopr::__private::precompute_field_varint::<#ty, #num_bytes_it_takes>(#n)
+            const #const_ident_encode: [u8; #num_bytes_it_takes]
+                = unsafe {
+                    ::otopr::__private::precompute_field_varint::<#ty, #num_bytes_it_takes>(#field_number)
+                };
         })
     }
 
@@ -157,7 +152,11 @@ pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
         }
     };
 
+    let const_defs = fields.iter().map(Field::const_def_encode).collect::<SynResult<Vec<_>>>().inner()?;
+
     Ok(quote! {
+        #(#const_defs)*
+    
         impl #impl_generics ::otopr::__private::EncodableMessage for #name #generics #where_clause {
             #methods
         }

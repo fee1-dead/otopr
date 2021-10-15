@@ -24,6 +24,14 @@ impl<T: ?Sized, C: Default> Default for Repeated<T, C> {
     }
 }
 
+impl<'a, T: ?Sized, C> From<&'a C> for &'a Repeated<T, C> {
+    fn from(c: &'a C) -> Self {
+        let ptr = c as *const C as *const Repeated<T, C>;
+        // SAFETY: Repeated is #[repr(transparent)] over C so this dereference is safe.
+        unsafe { &*ptr }
+    }
+}
+
 impl<T: ?Sized, C, CDeref> Repeated<T, C>
 where
     C: Deref<Target = CDeref>,
@@ -181,5 +189,42 @@ where
     ) -> crate::decoding::Result<()> {
         self.0.extend([T::decode(deserializer)?]);
         Ok(())
+    }
+}
+
+mod test {
+    use std::ops::Deref;
+
+    use otopr::*;
+
+    /// Generic struct that holds any sequences of bytes.
+    #[derive(otopr::EncodableMessage)]
+    pub struct Testing<T: Deref<Target = TDeref>, TDeref: ?Sized, TItem: AsRef<[u8]>> 
+    where
+        for<'a> &'a TDeref: IntoIterator<Item = &'a TItem>,
+        for<'a> <&'a TDeref as IntoIterator>::IntoIter: Clone,
+    {
+        #[otopr(encode_via(wire_types::LengthDelimitedWire, <&Repeated<TItem, T>>::from(x).map(|it| it.map(AsRef::as_ref))))]
+        foo: T,
+    }
+
+    /// Assert that the types are well-formed, that is, all predicates on the type's generic parameters are fulfilled.
+    macro_rules! assert_wf {
+        ($($ty:ty),+$(,)?) => {
+            #[allow(unreachable_code)]
+            fn __assert_wf() {
+                $(
+                    let _assert_wf: $ty = todo!();
+                )+
+            }
+        };
+    }
+
+    assert_wf! {
+        Testing<Vec<Vec<u8>>, [Vec<u8>], Vec<u8>>,
+        Testing<&'static [&'static str], [&'static str], &'static str>,
+        Testing<&[[u8; 10]; 10], [[u8; 10]; 10], [u8; 10]>,
+        // Testing<[[u8; 10]; 10], [[u8; 10]; 10], [u8; 10]>,
+        // ^ does not support yet
     }
 }

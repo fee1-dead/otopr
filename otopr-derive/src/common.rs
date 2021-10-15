@@ -43,7 +43,8 @@ pub struct Field {
     pub ty: Type,
     pub clean_ty: Type,
     pub cfg: FieldConfig,
-    pub const_ident: Ident,
+    pub const_ident_decode: Ident,
+    pub const_ident_encode: Ident,
 }
 
 pub fn random_ident_str() -> String {
@@ -62,9 +63,14 @@ fn clean_ty(mut ty: Type) -> Type {
             Type::Array(TypeArray { elem, .. })
             | Type::Group(TypeGroup { elem, .. })
             | Type::Ptr(TypePtr { elem, .. })
-            | Type::Reference(TypeReference { elem, .. })
             | Type::Slice(TypeSlice { elem, .. })
             | Type::Paren(TypeParen { elem, .. }) => clean_ty_inner(elem),
+            Type::Reference(TypeReference { elem, lifetime, .. }) => {
+                if let Some(lt) = lifetime {
+                    lt.ident = Ident::new("_", lt.ident.span());
+                }
+                clean_ty_inner(elem)
+            }
             Type::Tuple(TypeTuple { elems, .. }) => elems.iter_mut().for_each(clean_ty_inner),
             Type::Path(TypePath { path, .. }) => {
                 for segment in &mut path.segments {
@@ -95,7 +101,8 @@ impl Field {
             ty: f.ty.clone(),
             clean_ty: clean_ty(f.ty),
             cfg: FieldConfig::from_attrs(f.attrs, default_field_number)?,
-            const_ident: Ident::new(&random_ident_str(), Span::call_site()),
+            const_ident_decode: Ident::new(&random_ident_str(), Span::call_site()),
+            const_ident_encode: Ident::new(&random_ident_str(), Span::call_site()),
         })
     }
 }

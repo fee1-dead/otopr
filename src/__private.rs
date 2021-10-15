@@ -8,17 +8,11 @@ pub use bytes::{Buf, BufMut};
 
 pub struct __ConstBoundWorkaround<T>(T);
 
-impl<T: Encodable> Encodable for __ConstBoundWorkaround<T> {
-    type Wire = T::Wire;
-
-    fn encoded_size<V: VarInt>(&self, _: V) -> usize {
-        unreachable!()
-    }
-
-    fn encode(&self, _: &mut ProtobufSerializer<impl bytes::BufMut>) {
-        unreachable!()
-    }
+impl<T: WireType> WireType for __ConstBoundWorkaround<T> {
+    const BITS: u8 = T::BITS;
 }
+
+impl<T: WireType> crate::traits::private::Sealed for __ConstBoundWorkaround<T> {}
 
 /// Assumes N is the number of bytes it will take to encode a field key, returns encoded bytes in LEB128 format.
 ///
@@ -26,12 +20,12 @@ impl<T: Encodable> Encodable for __ConstBoundWorkaround<T> {
 /// You must ensure that `N` is the number of bytes that will be encoded.
 pub const unsafe fn precompute_field_varint<F, const N: usize>(mut num: u64) -> [u8; N]
 where
-    __ConstBoundWorkaround<F>: Encodable,
+    __ConstBoundWorkaround<F>: WireType,
 {
     let mut bytes = [0; N];
     // lowest four bits.
     let lowest_byte =
-        (num << 3 & 0b0111_1000) as u8 | <__ConstBoundWorkaround<F> as Encodable>::Wire::BITS;
+        (num << 3 & 0b0111_1000) as u8 | <__ConstBoundWorkaround<F> as WireType>::BITS;
     num >>= 4;
     bytes[N - 1] = lowest_byte;
     let mut n = N - 1;

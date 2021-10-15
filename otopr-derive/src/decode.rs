@@ -8,7 +8,7 @@ use crate::common::*;
 impl Field {
     pub fn match_arm(&self) -> Ts2 {
         let Field {
-            const_ident,
+            const_ident_decode: const_ident,
             member,
             ty,
             ..
@@ -21,7 +21,7 @@ impl Field {
     pub fn const_def(&self, cty: &Ts2) -> Ts2 {
         let Field {
             clean_ty,
-            const_ident,
+            const_ident_decode: const_ident,
             cfg: FieldConfig { field_number, .. },
             ..
         } = self;

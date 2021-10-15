@@ -127,7 +127,19 @@ pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
     let name = input.ident;
     let impl_generics = input.generics;
     let mut generics = impl_generics.clone();
+    let where_clause = impl_generics.where_clause;
+    let impl_generics = {
+        let params = impl_generics.params;
+        let lt = impl_generics.lt_token;
+        let gt = impl_generics.gt_token;
+        quote! {
+            #lt #params #gt
+        }
+    };
+
     generics.type_params_mut().for_each(|f| f.bounds.clear());
+    generics.where_clause = where_clause;
+
 
     let fields = fields_from(input.data)?;
 

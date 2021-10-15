@@ -6,6 +6,11 @@ pub use crate::wire_types::*;
 pub use crate::VarInt;
 pub use bytes::{Buf, BufMut};
 
+pub trait HasField<const NUM: u64> {
+    type PreCompArray: AsRef<[u8]>;
+    const PRECOMP: Self::PreCompArray;
+}
+
 pub struct __ConstBoundWorkaround<T>(T);
 
 impl<T: WireType> WireType for __ConstBoundWorkaround<T> {

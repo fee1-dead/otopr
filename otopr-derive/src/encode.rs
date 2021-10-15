@@ -152,7 +152,7 @@ pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
         fn encoded_size(&self) -> usize {
             0 #(+ #field_encoded_sizes)*
         }
-        fn encode<T: ::otopr::__private::BufMut>(&self, s: &mut ::otopr::__private::ProtobufSerializer<T>) {
+        fn encode<__BufMut: ::otopr::__private::BufMut>(&self, s: &mut ::otopr::__private::ProtobufSerializer<__BufMut>) {
             #(#field_encodes)*
         }
     };
@@ -164,7 +164,7 @@ pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
         impl #impl_generics ::otopr::__private::Encodable for #name #generics #where_clause {
             type Wire = ::otopr::__private::LengthDelimitedWire;
 
-            fn encoded_size<V: ::otopr::__private::VarInt>(&self, field_number: V) -> usize {
+            fn encoded_size<__VarInt: ::otopr::__private::VarInt>(&self, field_number: __VarInt) -> usize {
                 let calc_size = ::otopr::__private::EncodableMessage::encoded_size(self);
 
                 // encode field number, the size as varint, plus the bytes that follow.

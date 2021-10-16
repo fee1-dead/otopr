@@ -36,8 +36,12 @@ impl<T: ?Sized, C> Repeated<T, C>
 where
     C: Deref,
 {
-    pub fn map<'a, NewIter, F: Fn(<&'a C::Target as IntoIterator>::IntoIter) -> NewIter>(&'a self, f: F) -> RepeatedMap<<&'a C::Target as IntoIterator>::IntoIter, F>
-        where &'a C::Target: IntoIterator<Item = &'a T>,
+    pub fn map<'a, NewIter, F: Fn(<&'a C::Target as IntoIterator>::IntoIter) -> NewIter>(
+        &'a self,
+        f: F,
+    ) -> RepeatedMap<<&'a C::Target as IntoIterator>::IntoIter, F>
+    where
+        &'a C::Target: IntoIterator,
     {
         RepeatedMap {
             collection: self.0.into_iter(),
@@ -58,20 +62,21 @@ where
     NewIt: Iterator<Item = &'a Item>,
     Item: ?Sized + Encodable + 'a,
 {
-    fn mk_encoder(&self) -> RepeatedEncoder<'a, Item, NewIt>
-    {
+    fn mk_encoder(&self) -> RepeatedEncoder<'a, Item, NewIt> {
         RepeatedEncoder((self.map)(self.collection.clone()))
     }
 }
 
 impl<Item, C> Repeated<Item, C>
-where 
-    Item: ?Sized + Encodable, 
+where
+    Item: ?Sized + Encodable,
     C: Deref,
 {
-    fn mk_encoder<'a>(&'a self) -> RepeatedEncoder<'a, Item, <&'a C::Target as IntoIterator>::IntoIter>
+    fn mk_encoder<'a>(
+        &'a self,
+    ) -> RepeatedEncoder<'a, Item, <&'a C::Target as IntoIterator>::IntoIter>
     where
-        &'a C::Target: IntoIterator<Item = &'a Item>
+        &'a C::Target: IntoIterator<Item = &'a Item>,
     {
         RepeatedEncoder(self.0.into_iter())
     }
@@ -82,7 +87,7 @@ macro_rules! mk_encoder_trait_impls {
         fn encode(&self, _: &mut crate::encoding::ProtobufSerializer<impl BufMut>) {
             unreachable!("encode called on Repeated")
         }
-    
+
         fn encode_field<V: VarInt>(
             &self,
             s: &mut crate::encoding::ProtobufSerializer<impl BufMut>,
@@ -90,14 +95,14 @@ macro_rules! mk_encoder_trait_impls {
         ) {
             self.mk_encoder().encode_field(s, field_number)
         }
-    
+
         fn encoded_size<V>(&self, field_number: V) -> usize
         where
             V: VarInt,
         {
             self.mk_encoder().encoded_size(field_number)
         }
-    
+
         unsafe fn encode_field_precomputed(
             &self,
             s: &mut crate::encoding::ProtobufSerializer<impl BufMut>,
@@ -117,7 +122,7 @@ where
 {
     type Wire = T::Wire;
 
-    mk_encoder_trait_impls!();   
+    mk_encoder_trait_impls!();
 }
 
 impl<'a, F, IntoIt, NewIt, Item> Encodable for RepeatedMap<IntoIt, F>
@@ -199,9 +204,7 @@ mod test {
 
     /// Generic struct that holds any sequences of bytes.
     #[derive(otopr::EncodableMessage)]
-    #[otopr(encode_extra_type_params(
-        TItem
-    ))]
+    #[otopr(encode_extra_type_params(TItem))]
     #[otopr(encode_where_clause(
         where
             for<'a> &'a T: IntoIterator<Item = &'a TItem>,

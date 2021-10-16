@@ -1,7 +1,7 @@
 use proc_macro2::{Ident, Span, TokenStream as Ts2};
 
 use quote::quote;
-use syn::{DeriveInput, Error, GenericParam, Generics, punctuated::Pair};
+use syn::{punctuated::Pair, DeriveInput, Error, GenericParam, Generics};
 
 use crate::common::*;
 
@@ -10,10 +10,14 @@ impl Field {
         let Field {
             member,
             ty,
-            cfg: FieldConfig { field_number, encode_via, .. },
+            cfg:
+                FieldConfig {
+                    field_number,
+                    encode_via,
+                    ..
+                },
             ..
         } = self;
-
 
         if let Some((_, expr)) = encode_via {
             quote! {{
@@ -30,7 +34,17 @@ impl Field {
     }
 
     pub fn encode(&self) -> syn::Result<Ts2> {
-        let Field { member, ty, cfg: FieldConfig { encode_via, field_number, .. }, .. } = self;
+        let Field {
+            member,
+            ty,
+            cfg:
+                FieldConfig {
+                    encode_via,
+                    field_number,
+                    ..
+                },
+            ..
+        } = self;
         let tt = if let Some((_, expr)) = encode_via {
             quote! {
                 {
@@ -60,18 +74,28 @@ impl Field {
         }
     }
 
-    pub fn has_field_impl(&self, impl_generics: &Generics, name: &Ident, generics: &Generics, where_clause: &Option<syn::WhereClause>) -> syn::Result<Ts2> {
+    pub fn has_field_impl(
+        &self,
+        impl_generics: &Generics,
+        name: &Ident,
+        generics: &Generics,
+        where_clause: &Option<syn::WhereClause>,
+    ) -> syn::Result<Ts2> {
         let Field {
-            cfg: FieldConfig {
-                field_number,
-                field_number_span,
-                ..
-            },
+            cfg:
+                FieldConfig {
+                    field_number,
+                    field_number_span,
+                    ..
+                },
             ..
         } = self;
         let ty = self.wire_ty();
         let num_bytes_it_takes = if *field_number == 0 {
-            return Err(Error::new(*field_number_span, "field number cannot be zero"));
+            return Err(Error::new(
+                *field_number_span,
+                "field number cannot be zero",
+            ));
         } else {
             Self::field_tag_num_bytes(*field_number, *field_number_span)?
         };
@@ -123,7 +147,6 @@ pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
     let mut generics = impl_generics.clone();
     let mut where_clause = impl_generics.where_clause.take();
 
-
     let input_cfg = InputCfg::from_attrs(input.attrs)?;
 
     match (&mut where_clause, input_cfg.encode_where_clause) {
@@ -133,10 +156,19 @@ pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
     }
 
     if let Some(ext) = input_cfg.encode_extra_type_params {
-        impl_generics.params = ext.into_pairs().map(|p| {
-            let (tp, comma) = p.into_tuple();
-            Pair::new(GenericParam::Type(tp), Some(comma.unwrap_or(syn::token::Comma { spans: [Span::call_site()] })))
-        }).chain(impl_generics.params.into_pairs()).collect();
+        impl_generics.params = ext
+            .into_pairs()
+            .map(|p| {
+                let (tp, comma) = p.into_tuple();
+                Pair::new(
+                    GenericParam::Type(tp),
+                    Some(comma.unwrap_or(syn::token::Comma {
+                        spans: [Span::call_site()],
+                    })),
+                )
+            })
+            .chain(impl_generics.params.into_pairs())
+            .collect();
     }
 
     generics.type_params_mut().for_each(|f| f.bounds.clear());
@@ -159,11 +191,15 @@ pub(crate) fn derive_encodable_message(input: DeriveInput) -> syn::Result<Ts2> {
         }
     };
 
-    let has_field_impls = fields.iter().map(|f| f.has_field_impl(&impl_generics, &name, &generics, &where_clause)).collect::<SynResult<Vec<_>>>().inner()?;
+    let has_field_impls = fields
+        .iter()
+        .map(|f| f.has_field_impl(&impl_generics, &name, &generics, &where_clause))
+        .collect::<SynResult<Vec<_>>>()
+        .inner()?;
 
     Ok(quote! {
         #(#has_field_impls)*
-    
+
         impl #impl_generics ::otopr::__private::EncodableMessage for #name #generics #where_clause {
             #methods
         }

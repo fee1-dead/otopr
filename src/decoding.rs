@@ -132,12 +132,12 @@ impl<'de, B: Buf> Deserializer<'de, B> {
         f: F,
     ) -> Result<V> {
         if self.limit == usize::MAX {
-            f(&mut self.buf)
+            f(self.buf)
         } else if self.limit < len {
             Err(DecodingError::Eof)
         } else {
             self.limit -= len;
-            f(&mut self.buf)
+            f(self.buf)
         }
     }
 

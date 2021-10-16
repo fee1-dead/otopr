@@ -5,9 +5,8 @@ use proc_macro2::{Ident, Span, TokenStream as Ts2};
 use syn::{
     parenthesized,
     parse::{Parse, ParseStream, Parser},
-    parse2,
-    Attribute, Data, Error, Expr, GenericArgument, LitInt, Member, PathArguments, Token, Type,
-    TypeArray, TypeGroup, TypeParen, TypePath, TypePtr, TypeReference, TypeSlice, TypeTuple,
+    parse2, Attribute, Data, Error, Expr, GenericArgument, LitInt, Member, PathArguments, Token,
+    Type, TypeArray, TypeGroup, TypeParen, TypePath, TypePtr, TypeReference, TypeSlice, TypeTuple,
 };
 
 mod input_cfg;
@@ -117,10 +116,7 @@ pub struct FieldConfig {
 }
 
 impl FieldConfig {
-    pub fn from_attrs(
-        attrs: Vec<Attribute>,
-        default_field_number: u64,
-    ) -> syn::Result<Self> {
+    pub fn from_attrs(attrs: Vec<Attribute>, default_field_number: u64) -> syn::Result<Self> {
         let mut field_number = None;
         let mut encode_via = None;
         let mut field_number_span = Span::call_site();

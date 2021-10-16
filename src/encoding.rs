@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use bytes::BufMut;
 
 use crate::{traits::Signable, wire_types::*, Fixed32, Fixed64, Signed, VarInt};
@@ -35,6 +37,34 @@ pub trait Encodable {
 pub trait EncodableMessage {
     fn encoded_size(&self) -> usize;
     fn encode<T: BufMut>(&self, s: &mut ProtobufSerializer<T>);
+}
+
+pub struct EncodeAsRef<T, U: ?Sized>(T, PhantomData<U>);
+
+impl<T, U: ?Sized> EncodeAsRef<T, U> {
+    pub fn new(t: T) -> Self {
+        Self(t, PhantomData)
+    }
+}
+
+impl<T: AsRef<U>, U: ?Sized + Encodable> Encodable for EncodeAsRef<T, U> {
+    type Wire = U::Wire;
+
+    fn encoded_size<V: VarInt>(&self, field_number: V) -> usize {
+        self.0.as_ref().encoded_size(field_number)
+    }
+
+    fn encode(&self, s: &mut ProtobufSerializer<impl BufMut>) {
+        self.0.as_ref().encode(s)
+    }
+
+    fn encode_field<V: VarInt>(&self, s: &mut ProtobufSerializer<impl BufMut>, field_number: V) {
+        self.0.as_ref().encode_field(s, field_number)
+    }
+
+    unsafe fn encode_field_precomputed(&self, s: &mut ProtobufSerializer<impl BufMut>, field_number: &[u8]) {
+        self.0.as_ref().encode_field_precomputed(s, field_number)
+    }
 }
 
 pub struct ProtobufSerializer<T> {

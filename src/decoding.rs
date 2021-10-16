@@ -79,12 +79,6 @@ pub struct LimitToken {
     set_to: usize,
 }
 
-impl Drop for LimitToken {
-    fn drop(&mut self) {
-        // panic!("Don't forget to reset the limit!!!!!!")
-    }
-}
-
 pub struct Deserializer<'de, B> {
     pub(crate) buf: &'de mut B,
     limit: usize,

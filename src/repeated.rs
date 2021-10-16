@@ -32,13 +32,13 @@ impl<'a, T: ?Sized, C> From<&'a C> for &'a Repeated<T, C> {
     }
 }
 
-impl<T: ?Sized, C, CDeref> Repeated<T, C>
+impl<T: ?Sized, C> Repeated<T, C>
 where
-    C: Deref<Target = CDeref>,
-    for<'a> &'a CDeref: IntoIterator<Item = &'a T>,
-    CDeref: ?Sized,
+    C: Deref,
 {
-    pub fn map<'a, NewIter, F: Fn(<&'a CDeref as IntoIterator>::IntoIter) -> NewIter>(&'a self, f: F) -> RepeatedMap<<&'a CDeref as IntoIterator>::IntoIter, F> {
+    pub fn map<'a, NewIter, F: Fn(<&'a C::Target as IntoIterator>::IntoIter) -> NewIter>(&'a self, f: F) -> RepeatedMap<<&'a C::Target as IntoIterator>::IntoIter, F>
+        where &'a C::Target: IntoIterator<Item = &'a T>,
+    {
         RepeatedMap {
             collection: self.0.into_iter(),
             map: f,
@@ -64,14 +64,14 @@ where
     }
 }
 
-impl<Item, C, It> Repeated<Item, C>
+impl<Item, C> Repeated<Item, C>
 where 
     Item: ?Sized + Encodable, 
-    C: Deref<Target = It>,
-    for<'a> &'a It: IntoIterator<Item = &'a Item>,
-    It: ?Sized,
+    C: Deref,
 {
-    fn mk_encoder<'a>(&'a self) -> RepeatedEncoder<'a, Item, <&'a It as IntoIterator>::IntoIter>
+    fn mk_encoder<'a>(&'a self) -> RepeatedEncoder<'a, Item, <&'a C::Target as IntoIterator>::IntoIter>
+    where
+        &'a C::Target: IntoIterator<Item = &'a Item>
     {
         RepeatedEncoder(self.0.into_iter())
     }

@@ -108,11 +108,11 @@ macro_rules! mk_encoder_trait_impls {
 impl<C> Encodable for Repeated<C>
 where
     C: Deref,
-    C::Target: IntoIterator,
-    for<'a> &'a C::Target: IntoIterator<Item = &'a <<C as Deref>::Target as IntoIterator>::Item>,
-    <<C as Deref>::Target as IntoIterator>::Item: Encodable,
+    C::Target: HasItem,
+    for<'a> &'a C::Target: IntoIterator<Item = &'a <<C as Deref>::Target as HasItem>::Item>,
+    <<C as Deref>::Target as HasItem>::Item: Encodable,
 {
-    type Wire = <<C::Target as IntoIterator>::Item as Encodable>::Wire;
+    type Wire = <<C::Target as HasItem>::Item as Encodable>::Wire;
 
     mk_encoder_trait_impls!();
 }
@@ -188,6 +188,18 @@ where
         self.0.extend([C::Item::decode(deserializer)?]);
         Ok(())
     }
+}
+
+pub trait HasItem {
+    type Item;
+}
+
+impl<T: IntoIterator> HasItem for T {
+    type Item = T::Item;
+}
+
+impl<T> HasItem for [T] {
+    type Item = T;
 }
 
 mod test {

@@ -1,4 +1,3 @@
-use std::marker::PhantomData;
 use std::ops::Deref;
 
 use bytes::BufMut;
@@ -8,31 +7,25 @@ use crate::encoding::{Encodable, ProtobufSerializer};
 use crate::wire_types::WireType;
 use crate::VarInt;
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
 #[repr(transparent)]
-pub struct Repeated<Item: ?Sized, C = Vec<Item>>(pub C, PhantomData<Item>);
+pub struct Repeated<C>(pub C);
 
-impl<Item: ?Sized, C> Repeated<Item, C> {
+impl<C> Repeated<C> {
     pub fn new(collection: C) -> Self {
-        Self(collection, PhantomData)
+        Self(collection)
     }
 }
 
-impl<T: ?Sized, C: Default> Default for Repeated<T, C> {
-    fn default() -> Self {
-        Self(Default::default(), PhantomData)
-    }
-}
-
-impl<'a, T: ?Sized, C> From<&'a C> for &'a Repeated<T, C> {
+impl<'a, C> From<&'a C> for &'a Repeated<C> {
     fn from(c: &'a C) -> Self {
-        let ptr = c as *const C as *const Repeated<T, C>;
+        let ptr = c as *const C as *const Repeated<C>;
         // SAFETY: Repeated is #[repr(transparent)] over C so this dereference is safe.
         unsafe { &*ptr }
     }
 }
 
-impl<T: ?Sized, C> Repeated<T, C>
+impl<C> Repeated<C>
 where
     C: Deref,
 {
@@ -55,28 +48,27 @@ pub struct RepeatedMap<Iter, F> {
     map: F,
 }
 
-impl<'a, F, IntoIt, NewIt, Item> RepeatedMap<IntoIt, F>
+impl<'a, F, IntoIt, NewIt> RepeatedMap<IntoIt, F>
 where
     F: Fn(IntoIt) -> NewIt,
     IntoIt: Clone,
-    NewIt: Iterator<Item = &'a Item>,
-    Item: ?Sized + Encodable + 'a,
+    NewIt: Iterator,
 {
-    fn mk_encoder(&self) -> RepeatedEncoder<'a, Item, NewIt> {
+    fn mk_encoder(&self) -> RepeatedEncoder<NewIt> {
         RepeatedEncoder((self.map)(self.collection.clone()))
     }
 }
 
-impl<Item, C> Repeated<Item, C>
+impl<C> Repeated<C>
 where
-    Item: ?Sized + Encodable,
     C: Deref,
 {
     fn mk_encoder<'a>(
         &'a self,
-    ) -> RepeatedEncoder<'a, Item, <&'a C::Target as IntoIterator>::IntoIter>
+    ) -> RepeatedEncoder<<&'a C::Target as IntoIterator>::IntoIter>
     where
-        &'a C::Target: IntoIterator<Item = &'a Item>,
+        &'a C::Target: IntoIterator,
+        <&'a C::Target as IntoIterator>::Item: Encodable,
     {
         RepeatedEncoder(self.0.into_iter())
     }
@@ -113,23 +105,23 @@ macro_rules! mk_encoder_trait_impls {
     };
 }
 
-impl<It, T: ?Sized, C> Encodable for Repeated<T, C>
+impl<C> Encodable for Repeated<C>
 where
-    It: ?Sized,
-    C: Deref<Target = It>,
-    for<'a> &'a It: IntoIterator<Item = &'a T>,
-    T: Encodable,
+    C: Deref,
+    C::Target: IntoIterator,
+    for<'a> &'a C::Target: IntoIterator<Item = &'a <<C as Deref>::Target as IntoIterator>::Item>,
+    <<C as Deref>::Target as IntoIterator>::Item: Encodable,
 {
-    type Wire = T::Wire;
+    type Wire = <<C::Target as IntoIterator>::Item as Encodable>::Wire;
 
     mk_encoder_trait_impls!();
 }
 
-impl<'a, F, IntoIt, NewIt, Item> Encodable for RepeatedMap<IntoIt, F>
+impl<F, IntoIt, NewIt, Item> Encodable for RepeatedMap<IntoIt, F>
 where
     F: Fn(IntoIt) -> NewIt,
-    NewIt: Iterator<Item = &'a Item>,
-    Item: ?Sized + Encodable + 'a,
+    NewIt: Iterator<Item = Item>,
+    Item: ?Sized + Encodable,
     IntoIt: Clone,
 {
     type Wire = Item::Wire;
@@ -137,15 +129,15 @@ where
     mk_encoder_trait_impls!();
 }
 
-struct RepeatedEncoder<'a, Item: ?Sized + 'a, Iter: Iterator<Item = &'a Item>>(Iter);
+struct RepeatedEncoder<Iter: Iterator>(Iter);
 
-impl<'a, Item, Iter> RepeatedEncoder<'a, Item, Iter>
+impl<Iter> RepeatedEncoder<Iter>
 where
-    Item: ?Sized + Encodable + 'a,
-    Iter: Iterator<Item = &'a Item>,
+    Iter: Iterator,
+    Iter::Item: Encodable,
 {
     pub fn encode_field<V: VarInt>(self, s: &mut ProtobufSerializer<impl BufMut>, field_number: V) {
-        let var = field_number << 3 | V::from(Item::Wire::BITS);
+        let var = field_number << 3 | V::from(<<Iter as Iterator>::Item as Encodable>::Wire::BITS);
         for t in self.0 {
             s.write_varint(var);
             t.encode(s);
@@ -168,19 +160,20 @@ where
     }
 }
 
-impl<'de, T: Decodable<'de>, C> Decodable<'de> for Repeated<T, C>
+impl<'de, C> Decodable<'de> for Repeated<C>
 where
-    C: Extend<T>,
+    C: Extend<C::Item>,
     C: Default,
-    C: IntoIterator<Item = T>,
+    C: IntoIterator,
+    C::Item: Decodable<'de>,
 {
-    type Wire = T::Wire;
+    type Wire = <<C as IntoIterator>::Item as Decodable<'de>>::Wire;
 
     fn decode<B: bytes::Buf>(
         deserializer: &mut crate::decoding::Deserializer<'de, B>,
     ) -> crate::decoding::Result<Self> {
         let mut val = Self::default();
-        val.0.extend([T::decode(deserializer)?]);
+        val.0.extend([C::Item::decode(deserializer)?]);
         Ok(val)
     }
 
@@ -192,7 +185,7 @@ where
         &mut self,
         deserializer: &mut crate::decoding::Deserializer<'de, B>,
     ) -> crate::decoding::Result<()> {
-        self.0.extend([T::decode(deserializer)?]);
+        self.0.extend([C::Item::decode(deserializer)?]);
         Ok(())
     }
 }
@@ -212,7 +205,7 @@ mod test {
             for<'a> <&'a T as IntoIterator>::IntoIter: Clone,
     ))]
     pub struct Testing<T> {
-        #[otopr(encode_via(wire_types::LengthDelimitedWire, <&Repeated<TItem, &T>>::from(&x).map(|it| it.map(AsRef::as_ref))))]
+        #[otopr(encode_via(wire_types::LengthDelimitedWire, <&Repeated<&T>>::from(&x).map(|it| it.map(AsRef::as_ref))))]
         foo: T,
     }
 

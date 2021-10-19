@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Display};
 use std::ops::{Deref, DerefMut};
 
 use bytes::BufMut;
@@ -10,7 +11,7 @@ use crate::VarInt;
 /// Protobuf `repeated` fields.
 ///
 /// 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[repr(transparent)]
 pub struct Repeated<C>(C);
 
@@ -222,6 +223,18 @@ impl<C> Deref for Repeated<C> {
 impl<C> DerefMut for Repeated<C> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl<C: Debug> Debug for Repeated<C> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl<C: Display> Display for Repeated<C> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 

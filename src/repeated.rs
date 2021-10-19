@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 use bytes::BufMut;
 
@@ -7,21 +7,20 @@ use crate::encoding::{Encodable, ProtobufSerializer};
 use crate::wire_types::WireType;
 use crate::VarInt;
 
+/// Protobuf `repeated` fields.
+///
+/// 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
 #[repr(transparent)]
-pub struct Repeated<C>(pub C);
+pub struct Repeated<C>(C);
 
 impl<C> Repeated<C> {
     pub fn new(collection: C) -> Self {
         Self(collection)
     }
-}
 
-impl<'a, C> From<&'a C> for &'a Repeated<C> {
-    fn from(c: &'a C) -> Self {
-        let ptr = c as *const C as *const Repeated<C>;
-        // SAFETY: Repeated is #[repr(transparent)] over C so this dereference is safe.
-        unsafe { &*ptr }
+    pub fn into_inner(self) -> C {
+        self.0
     }
 }
 
@@ -187,6 +186,42 @@ where
     ) -> crate::decoding::Result<()> {
         self.0.extend([C::Item::decode(deserializer)?]);
         Ok(())
+    }
+}
+
+impl<C> From<C> for Repeated<C> {
+    fn from(c: C) -> Self {
+        Self(c)
+    }
+}
+
+impl<'a, C> From<&'a C> for &'a Repeated<C> {
+    fn from(c: &'a C) -> Self {
+        let ptr = c as *const C as *const Repeated<C>;
+        // SAFETY: Repeated is #[repr(transparent)] over C so this dereference is safe.
+        unsafe { &*ptr }
+    }
+}
+
+impl<'a, C> From<&'a mut C> for &'a mut Repeated<C> {
+    fn from(c: &'a mut C) -> Self {
+        let ptr = c as *mut C as *mut Repeated<C>;
+        // SAFETY: Repeated is #[repr(transparent)] over C so this dereference is safe.
+        unsafe { &mut *ptr }
+    }
+}
+
+impl<C> Deref for Repeated<C> {
+    type Target = C;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<C> DerefMut for Repeated<C> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 

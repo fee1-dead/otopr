@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::{collections::HashMap, marker::PhantomData};
 
 use bytes::Buf;
@@ -134,5 +135,11 @@ where
         let mut this = Self(T::default(), PhantomData);
         this.merge_from(d)?;
         Ok(this)
+    }
+}
+
+impl<K, V, T: Debug> Debug for Map<K, V, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }

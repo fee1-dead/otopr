@@ -172,15 +172,15 @@ impl<'de, B: Buf> Deserializer<'de, B> {
         })
     }
 
-    pub fn read_bytes_owned(&mut self, len: usize) -> Result<Vec<u8>> {
+    pub fn read_bytes_owned(&mut self, len: usize) -> Result<Box<[u8]>> {
         use bytes::BufMut;
         self.check_limit(len, |buf| {
             if buf.remaining() < len {
                 Err(DecodingError::Eof)
             } else {
-                let mut v = Vec::with_capacity(len);
+                let mut v= Vec::with_capacity(len);
                 (&mut v).put(buf.take(len));
-                Ok(v)
+                Ok(v.into_boxed_slice())
             }
         })
     }
@@ -206,6 +206,15 @@ impl Decodable<'_> for Vec<u8> {
 
     fn decode<B: Buf>(deserializer: &mut Deserializer<'_, B>) -> Result<Self> {
         let len = deserializer.read_varint()?;
+        deserializer.read_bytes_owned(len).map(From::from)
+    }
+}
+
+impl Decodable<'_> for Box<[u8]> {
+    type Wire = LengthDelimitedWire;
+
+    fn decode<B: Buf>(deserializer: &mut Deserializer<'_, B>) -> Result<Self> {
+        let len = deserializer.read_varint()?;
         deserializer.read_bytes_owned(len)
     }
 }
@@ -226,7 +235,15 @@ impl Decodable<'_> for String {
     fn decode<B: Buf>(deserializer: &mut Deserializer<'_, B>) -> Result<Self> {
         let len = deserializer.read_varint()?;
         let bytes = deserializer.read_bytes_owned(len)?;
-        Ok(String::from_utf8(bytes).map_err(|e| e.utf8_error())?)
+        Ok(String::from_utf8(bytes.into()).map_err(|e| e.utf8_error())?)
+    }
+}
+
+impl Decodable<'_> for Box<str> {
+    type Wire = LengthDelimitedWire;
+
+    fn decode<B: Buf>(deserializer: &mut Deserializer<'_, B>) -> Result<Self> {
+        String::decode(deserializer).map(String::into_boxed_str)
     }
 }
 

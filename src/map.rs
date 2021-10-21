@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::ops::{Deref, DerefMut};
 use std::{collections::HashMap, marker::PhantomData};
 
 use bytes::Buf;
@@ -8,6 +9,18 @@ use crate::encoding::Encodable;
 use crate::{wire_types::*, VarInt};
 
 pub struct Map<K, V, T = HashMap<K, V>>(T, PhantomData<(K, V)>);
+
+impl<K, V, T> Map<K, V, T> {
+    #[inline]
+    pub const fn new(map: T) -> Self {
+        Self(map, PhantomData)
+    }
+
+    #[inline]
+    pub fn into_inner(self) -> T {
+        self.0
+    }
+}
 
 impl<K, V, T: Default> Default for Map<K, V, T> {
     fn default() -> Self {
@@ -141,5 +154,19 @@ where
 impl<K, V, T: Debug> Debug for Map<K, V, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
+    }
+}
+
+impl<K, V, T> Deref for Map<K, V, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<K, V, T> DerefMut for Map<K, V, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }

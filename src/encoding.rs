@@ -173,6 +173,18 @@ impl Encodable for [u8] {
     }
 }
 
+impl Encodable for Vec<u8> {
+    type Wire = <[u8] as Encodable>::Wire;
+
+    fn encoded_size<V: VarInt>(&self, field_number: V) -> usize {
+        <[u8] as Encodable>::encoded_size(self, field_number)
+    }
+
+    fn encode(&self, s: &mut ProtobufSerializer<impl BufMut>) {
+        <[u8] as Encodable>::encode(self, s)
+    }
+}
+
 impl<'a, T: Encodable + ?Sized> Encodable for &'a T {
     type Wire = T::Wire;
 

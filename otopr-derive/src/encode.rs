@@ -21,10 +21,9 @@ impl Field {
 
         if let Some((_, expr)) = encode_via {
             quote! {{
-                use ::otopr::__private::Encodable;
                 let x = &self.#member;
                 let encode = #expr;
-                encode.encoded_size(#field_number)
+                ::otopr::__private::Encodable::encoded_size(&encode, #field_number)
             }}
         } else {
             quote! {{
@@ -48,11 +47,10 @@ impl Field {
         let tt = if let Some((_, expr)) = encode_via {
             quote! {
                 {
-                    use ::otopr::__private::Encodable;
                     let x = &self.#member;
                     let encode = #expr;
                     unsafe {
-                        encode.encode_field_precomputed(s, &<Self as ::otopr::__private::HasField<#field_number>>::PRECOMP);
+                        ::otopr::__private::Encodable::encode_field_precomputed(&encode, s, &<Self as ::otopr::__private::HasField<#field_number>>::PRECOMP);
                     }
                 }
             }

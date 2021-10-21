@@ -8,6 +8,7 @@ use crate::decoding::{Decodable, DecodingError, Deserializer};
 use crate::encoding::Encodable;
 use crate::{wire_types::*, VarInt};
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Map<K, V, T = HashMap<K, V>>(T, PhantomData<(K, V)>);
 
 impl<K, V, T> Map<K, V, T> {
@@ -170,3 +171,4 @@ impl<K, V, T> DerefMut for Map<K, V, T> {
         &mut self.0
     }
 }
+

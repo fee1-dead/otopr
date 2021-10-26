@@ -238,6 +238,15 @@ impl<C: Display> Display for Repeated<C> {
     }
 }
 
+impl<C: IntoIterator> IntoIterator for Repeated<C> {
+    type Item = C::Item;
+    type IntoIter = C::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 pub trait HasItem {
     type Item;
 }

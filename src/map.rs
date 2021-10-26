@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
 use std::{collections::HashMap, marker::PhantomData};
 
@@ -26,6 +27,13 @@ impl<K, V, T> Map<K, V, T> {
 impl<K, V, T: Default> Default for Map<K, V, T> {
     fn default() -> Self {
         Self(T::default(), PhantomData)
+    }
+}
+
+impl<K, V, T: Hash> Hash for Map<K, V, T> {
+    #[inline]
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
     }
 }
 
@@ -171,4 +179,11 @@ impl<K, V, T> DerefMut for Map<K, V, T> {
         &mut self.0
     }
 }
+
+impl<K, V, T> From<T> for Map<K, V, T> {
+    fn from(t: T) -> Self {
+        Self(t, PhantomData)
+    }
+}
+
 

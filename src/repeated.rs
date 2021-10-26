@@ -11,7 +11,7 @@ use crate::VarInt;
 /// Protobuf `repeated` fields.
 ///
 /// 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 #[repr(transparent)]
 pub struct Repeated<C>(C);
 

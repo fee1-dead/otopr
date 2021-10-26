@@ -186,4 +186,14 @@ impl<K, V, T> From<T> for Map<K, V, T> {
     }
 }
 
+impl<K, V, T: IntoIterator> IntoIterator for Map<K, V, T> {
+    type Item = T::Item;
+
+    type IntoIter = T::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 

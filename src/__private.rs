@@ -11,6 +11,11 @@ pub trait HasField<const NUM: u64> {
     const PRECOMP: Self::PreCompArray;
 }
 
+pub trait HasFieldDecode<const NUM: u64> {
+    type VarInt: VarInt;
+    const FNUM: Self::VarInt;
+}
+
 pub struct __ConstBoundWorkaround<T>(T);
 
 impl<T: WireType> WireType for __ConstBoundWorkaround<T> {

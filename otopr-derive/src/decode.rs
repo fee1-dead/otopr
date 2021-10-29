@@ -1,32 +1,41 @@
-use proc_macro2::{Span, TokenStream as Ts2};
+use proc_macro2::{Ident, Span, TokenStream as Ts2};
 
 use quote::{quote, ToTokens};
-use syn::DeriveInput;
+use syn::{DeriveInput, Generics};
 
 use crate::common::*;
 
 impl Field {
     pub fn match_arm(&self) -> Ts2 {
         let Field {
-            const_ident_decode: const_ident,
             member,
             ty,
-            ..
-        } = self;
-        quote! {
-            #const_ident => <#ty as ::otopr::__private::Decodable>::merge_from(&mut self.#member, d)?,
-        }
-    }
-
-    pub fn const_def(&self, cty: &Ts2) -> Ts2 {
-        let Field {
-            clean_ty,
-            const_ident_decode: const_ident,
             cfg: FieldConfig { field_number, .. },
             ..
         } = self;
         quote! {
-            const #const_ident: #cty = (#field_number << 3) as #cty | <<#clean_ty as ::otopr::__private::Decodable>::Wire as ::otopr::__private::WireType>::BITS;
+            <Self as ::otopr::__private::HasFieldDecode<#field_number>>::FNUM => <#ty as ::otopr::__private::Decodable>::merge_from(&mut self.#member, d)?,
+        }
+    }
+
+    pub fn has_field_decode_impl(
+        &self,
+        cty: &Ts2,
+        impl_generics: &Ts2,
+        name: &Ident,
+        generics: &Generics,
+    ) -> Ts2 {
+        let Field {
+            ty,
+            cfg: FieldConfig { field_number, .. },
+            ..
+        } = self;
+        quote! {
+            #[doc(hidden)] // internal implementation details
+            impl #impl_generics ::otopr::__private::HasFieldDecode<#field_number> for #name #generics {
+                type VarInt = #cty;
+                const FNUM: #cty = (#field_number << 3) as #cty | <<#ty as ::otopr::__private::Decodable>::Wire as ::otopr::__private::WireType>::BITS;
+            }
         }
     }
 
@@ -95,7 +104,7 @@ pub(crate) fn derive_decodable_message(input: DeriveInput) -> syn::Result<Ts2> {
     let max = Field::max_field_tag_size(&fields)?;
     let cty = &max;
 
-    let const_defs = fields.iter().map(|f| f.const_def(cty));
+    let const_defs = fields.iter().map(|f| f.has_field_decode_impl(cty, &impl_generics, &name, &generics));
     let match_arms = fields.iter().map(Field::match_arm);
     let merges = fields.iter().map(Field::merge);
 

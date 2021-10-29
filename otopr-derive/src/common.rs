@@ -5,8 +5,8 @@ use proc_macro2::{Ident, Span, TokenStream as Ts2};
 use syn::{
     parenthesized,
     parse::{Parse, ParseStream, Parser},
-    parse2, Attribute, Data, Error, Expr, GenericArgument, LitInt, Member, PathArguments, Token,
-    Type, TypeArray, TypeGroup, TypeParen, TypePath, TypePtr, TypeReference, TypeSlice, TypeTuple,
+    parse2, Attribute, Data, Error, Expr, LitInt, Member, Token,
+    Type,
 };
 
 mod input_cfg;
@@ -43,10 +43,7 @@ pub fn fields_from(input: Data) -> syn::Result<Vec<Field>> {
 pub struct Field {
     pub member: Member,
     pub ty: Type,
-    pub clean_ty: Type,
     pub cfg: FieldConfig,
-    pub const_ident_decode: Ident,
-    pub const_ident_encode: Ident,
 }
 
 pub fn random_ident_str() -> String {
@@ -59,52 +56,12 @@ pub fn random_ident_str() -> String {
     )
 }
 
-fn clean_ty(mut ty: Type) -> Type {
-    fn clean_ty_inner(ty: &mut Type) {
-        match ty {
-            Type::Array(TypeArray { elem, .. })
-            | Type::Group(TypeGroup { elem, .. })
-            | Type::Ptr(TypePtr { elem, .. })
-            | Type::Slice(TypeSlice { elem, .. })
-            | Type::Paren(TypeParen { elem, .. }) => clean_ty_inner(elem),
-            Type::Reference(TypeReference { elem, lifetime, .. }) => {
-                if let Some(lt) = lifetime {
-                    lt.ident = Ident::new("_", lt.ident.span());
-                }
-                clean_ty_inner(elem)
-            }
-            Type::Tuple(TypeTuple { elems, .. }) => elems.iter_mut().for_each(clean_ty_inner),
-            Type::Path(TypePath { path, .. }) => {
-                for segment in &mut path.segments {
-                    if let PathArguments::AngleBracketed(args) = &mut segment.arguments {
-                        for arg in &mut args.args {
-                            match arg {
-                                GenericArgument::Lifetime(lt) => {
-                                    lt.ident = Ident::new("_", lt.ident.span())
-                                }
-                                GenericArgument::Type(ty) => clean_ty_inner(ty),
-                                _ => {}
-                            }
-                        }
-                    }
-                }
-            }
-            _ => unimplemented!(),
-        }
-    }
-    clean_ty_inner(&mut ty);
-    ty
-}
-
 impl Field {
     pub fn new(n: usize, f: syn::Field, default_field_number: u64) -> syn::Result<Self> {
         Ok(Self {
             member: f.ident.map_or_else(|| Member::from(n), Member::from),
             ty: f.ty.clone(),
-            clean_ty: clean_ty(f.ty),
             cfg: FieldConfig::from_attrs(f.attrs, default_field_number)?,
-            const_ident_decode: Ident::new(&random_ident_str(), Span::call_site()),
-            const_ident_encode: Ident::new(&random_ident_str(), Span::call_site()),
         })
     }
 }

@@ -40,6 +40,7 @@ pub mod tests;
 mod impls;
 pub mod wire_types;
 
+#[doc(hidden)]
 pub mod __private;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]

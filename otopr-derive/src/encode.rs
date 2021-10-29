@@ -98,6 +98,7 @@ impl Field {
             Self::field_tag_num_bytes(*field_number, *field_number_span)?
         };
         Ok(quote! {
+            #[doc(hidden)] // internal implementation details
             impl #impl_generics ::otopr::__private::HasField<#field_number> for #name #generics #where_clause {
                 type PreCompArray = [u8; #num_bytes_it_takes];
                 const PRECOMP: Self::PreCompArray = unsafe {

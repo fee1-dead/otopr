@@ -51,7 +51,7 @@ pub struct RepeatedMap<Iter, F> {
 impl<It, F> RepeatedMap<It, F> {
     /// Creates a new `RepeatedMap` from an iterator and a map function.
     #[inline]
-    pub fn new(iterator: It, map_fn: F) -> Self {
+    pub fn new<O>(iterator: It, map_fn: F) -> Self where F: Fn(It) -> O {
         Self {
             collection: iterator,
             map: map_fn,
